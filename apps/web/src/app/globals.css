@@ -10,3 +10,4 @@
 
 /* Keep cohort heatmaps usable at narrow viewport widths. */
 .staff-matrix{min-width:0}.staff-matrix td,.staff-matrix th{padding:4px}.staff-modal{width:min(100%,620px)}
+.auth-wait{min-height:100vh;display:flex;align-items:center;justify-content:center;gap:20px;padding:24px}.auth-card{max-width:500px;display:flex;flex-direction:column;gap:18px;padding:28px}.staff-panel .field,.staff-modal .field{display:block;margin:16px 0}.check-label{display:flex;align-items:center;gap:10px;margin:16px 0;min-height:44px}.check-label input{width:18px;height:18px}.heat-cell{display:flex;min-height:44px;align-items:center;justify-content:center;gap:4px;padding:5px}.heat-cell .chip{padding:3px 5px}.story-brand{display:flex;align-items:center;gap:12px;color:white;font-size:20px}#google-signin{min-height:44px;margin:24px 0}.staff-panel .group-row{gap:8px}.staff-panel .group-row button{flex-shrink:0}

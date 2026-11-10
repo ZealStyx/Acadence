@@ -24,3 +24,15 @@ export const setActive=mutationGeneric({args:{accountId:v.id('accounts'),active:
  const admin=await requireAccount(ctx,'admin');if(admin._id===accountId&&!active)throw new Error('You cannot disable your own account.');
  const account=await ctx.db.get(accountId);if(!account)throw new Error('Account not found.');await ctx.db.patch(accountId,{active});
 }});
+// This status endpoint never grants a role. The server still checks authorization on every operation.
+export const status=queryGeneric({args:{},handler:async(ctx)=>{
+ const identity=await ctx.auth.getUserIdentity();
+ if(!identity||identity.emailVerified!==true||!identity.email)return {state:'invalid' as const};
+ const email=normalizeEmail(identity.email);
+ if(!emailPattern.test(email))return {state:'invalid' as const};
+ const account=await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',email)).unique();
+ if(account?.active)return {state:'active' as const,account};
+ const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');
+ const canBootstrap=!account&&configured===email&&!(await ctx.db.query('bootstrap').first());
+ return {state:'unapproved' as const,canBootstrap};
+}});

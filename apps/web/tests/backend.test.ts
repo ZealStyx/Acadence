@@ -15,7 +15,8 @@ describe('Convex authorization and shared deadlines',()=>{
   await expect(t.query(api.accounts.me,{})).rejects.toThrow();
   await expect(t.withIdentity(who('someone@lspu.edu.ph')).query(api.accounts.me,{})).rejects.toThrow();
   await expect(t.withIdentity(who('0000-0000@lspu.edu.ph',false)).mutation(api.accounts.bootstrapAdmin,{})).rejects.toThrow();
-  await root.mutation(api.accounts.bootstrapAdmin,{});await expect(root.mutation(api.accounts.bootstrapAdmin,{})).rejects.toThrow();
+  expect((await root.query(api.accounts.status,{})).canBootstrap).toBe(true);
+  await root.mutation(api.accounts.bootstrapAdmin,{});expect((await root.query(api.accounts.status,{})).state).toBe('active');await expect(root.mutation(api.accounts.bootstrapAdmin,{})).rejects.toThrow();
   await expect(t.withIdentity(who('1111-1111@lspu.edu.ph')).query(api.accounts.me,{})).rejects.toThrow();
   await expect(root.mutation(api.accounts.provision,{email:'test@lspu.edu.ph',name:'Invalid',role:'student'})).rejects.toThrow();
  });
