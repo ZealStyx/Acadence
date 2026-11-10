@@ -30,7 +30,7 @@ export default function Login({ onDemo }: { onDemo: (role: 'student' | 'instruct
           <p className="login-subtitle">Your semester, a little more manageable. Sign in to see what’s ahead.</p>
           <form className="login-form" onSubmit={event => { event.preventDefault(); setNotice('University sign-in is not connected yet. Please use one of the demos below.'); }}>
             <label htmlFor="login-email">University email</label>
-            <input id="login-email" name="email" type="email" autoComplete="username" placeholder="you@example.edu" required />
+            <input id="login-email" name="email" type="email" autoComplete="username" placeholder="0000-0000@lspu.edu.ph" required />
             <div className="password-label"><label htmlFor="login-password">Password</label></div>
             <div className="login-password"><input id="login-password" name="password" type={showPassword ? 'text' : 'password'} autoComplete="current-password" placeholder="Enter your password" required /><button type="button" onClick={() => setShowPassword(!showPassword)} aria-label={showPassword ? 'Hide password' : 'Show password'}>{showPassword ? 'Hide' : 'Show'}</button></div>
             <button className="login-submit" type="submit">Sign in <span aria-hidden="true">→</span></button>
