@@ -1,263 +1,43 @@
-"use client";
+'use client';
+import {useEffect, useRef, useState} from 'react';
+import {ConvexHttpClient} from 'convex/browser';
+import {anyApi} from 'convex/server';
+import {Deadline, Kind, sampleDeadlines, weekItems, load, band, breakdown, range, dateFor, dateLabel, shortDate} from '@/lib/data';
 
-import { useState } from "react";
-import type { Course, IconName, NavItem, ScheduleItem } from "../types";
-
-const navigation: NavItem[] = [
-  { label: "Overview", icon: "grid", active: true },
-  { label: "My courses", icon: "book" },
-  { label: "Calendar", icon: "calendar" },
-  { label: "Assignments", icon: "check" },
-  { label: "Progress", icon: "chart" },
-];
-
-const courses: Course[] = [
-  {
-    code: "CS 204",
-    title: "Data Structures & Algorithms",
-    progress: 68,
-    color: "coral",
-    next: "2h 40m",
-    nextLabel: "next lesson",
-  },
-  {
-    code: "MATH 118",
-    title: "Linear Algebra",
-    progress: 42,
-    color: "purple",
-    next: "Tomorrow",
-    nextLabel: "next lesson",
-  },
-  {
-    code: "DES 101",
-    title: "Design Fundamentals",
-    progress: 81,
-    color: "teal",
-    next: "Fri, 10:00 AM",
-    nextLabel: "next lesson",
-  },
-];
-
-const schedule: ScheduleItem[] = [
-  {
-    time: "09:00",
-    title: "Algorithms: Graph traversal",
-    course: "CS 204",
-    type: "Lecture",
-    color: "coral",
-  },
-  {
-    time: "11:30",
-    title: "Problem set review",
-    course: "MATH 118",
-    type: "Study session",
-    color: "purple",
-  },
-  {
-    time: "14:00",
-    title: "Visual hierarchy",
-    course: "DES 101",
-    type: "Workshop",
-    color: "teal",
-  },
-];
-
-function Icon({ name }: { name: IconName }) {
-  const paths: Record<IconName, React.ReactNode> = {
-    grid: (
-      <>
-        <rect x="3" y="3" width="7" height="7" rx="1" />
-        <rect x="14" y="3" width="7" height="7" rx="1" />
-        <rect x="3" y="14" width="7" height="7" rx="1" />
-        <rect x="14" y="14" width="7" height="7" rx="1" />
-      </>
-    ),
-    book: (
-      <>
-        <path d="M4 5.5A2.5 2.5 0 0 1 6.5 3H20v16H6.5A2.5 2.5 0 0 0 4 21.5z" />
-        <path d="M4 5.5v16M8 7h8M8 11h7" />
-      </>
-    ),
-    calendar: (
-      <>
-        <rect x="3" y="5" width="18" height="16" rx="2" />
-        <path d="M16 3v4M8 3v4M3 10h18" />
-      </>
-    ),
-    check: (
-      <>
-        <path d="M9 11l3 3L21 5" />
-        <path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11" />
-      </>
-    ),
-    chart: (
-      <>
-        <path d="M4 19V5M4 19h17" />
-        <path d="m7 15 3-4 3 2 5-7" />
-      </>
-    ),
-    settings: (
-      <>
-        <path d="M12 15.5a3.5 3.5 0 1 0 0-7 3.5 3.5 0 0 0 0 7Z" />
-        <path d="m19.4 15 .1.1a2 2 0 1 1-2.8 2.8l-.1-.1a2 2 0 0 0-3.4 1.4v.3a2 2 0 1 1-4 0v-.2A2 2 0 0 0 6 17.9l-.1.1A2 2 0 1 1 3.1 15l.1-.1a2 2 0 0 0-1.4-3.4h-.3a2 2 0 1 1 0-4h.2A2 2 0 0 0 3.1 4L3 3.9A2 2 0 1 1 5.9 1l.1.1a2 2 0 0 0 3.4-1.4V-.5a2 2 0 1 1 4 0v.2A2 2 0 0 0 16.8 1l.1-.1A2 2 0 1 1 19.7 3l-.1.1a2 2 0 0 0 1.4 3.4h.3a2 2 0 1 1 0 4h-.2a2 2 0 0 0-1.7 4.5Z" transform="translate(0 1)" />
-      </>
-    ),
-  };
-
-  return (
-    <svg aria-hidden="true" className="icon" viewBox="0 0 24 24" fill="none">
-      {paths[name]}
-    </svg>
-  );
+type Page = 'Home'|'Timeline'|'Crunch Weeks'|'Profile';
+const pages:Page[]=['Home','Timeline','Crunch Weeks','Profile'];
+const demoKey='pulso-deadlines';
+const convexUrl=process.env.NEXT_PUBLIC_CONVEX_URL;
+const client=convexUrl ? new ConvexHttpClient(convexUrl) : null;
+function Chip({value, text}:{value:string;text?:string}) { const symbol=value==='Critical'?'■':value==='Heavy'?'▲':'●'; return <span className={'chip '+value.toLowerCase()}>{symbol} {text||value}</span>; }
+function Tags({item}:{item:Deadline}) { return <div className="tags"><span className={'tag '+(item.major?'major':'')}>{item.major?'Major':'Minor'}</span><span className="tag">{item.type==='exam'?'Fixed by Dean':item.type[0].toUpperCase()+item.type.slice(1)}</span>{item.estimated&&<span className="tag estimated">Estimated</span>}</div>; }
+function DeadlineCard({item, timeline=false}:{item:Deadline;timeline?:boolean}) {return <article className="deadline card"><div><strong>{item.subject} · {item.title}</strong><p>{timeline?`${item.type[0].toUpperCase()+item.type.slice(1)} · ${item.weightPercent}% of grade`:`${dateLabel(item)} · ${item.weightPercent}% of grade`}</p></div><Tags item={item}/></article>}
+function WeekCard({week,items,selected,onClick}:{week:number;items:Deadline[];selected:boolean;onClick:()=>void}) {const list=weekItems(items,week), score=load(list);return <button className={'week-card card '+(selected?'selected':'')} onClick={onClick} aria-pressed={selected}><div className="week-top"><strong>W{week}</strong><b>{score.toFixed(1)}</b></div><p>{range(week)}</p><Chip value={band(score)}/><p>{breakdown(list)}</p></button>}
+function Pager({label,onPrev,onNext,disabled}:{label:string;onPrev:()=>void;onNext:()=>void;disabled?:boolean}) {return <div className="pager"><button className="arrow" onClick={onPrev} disabled={disabled} aria-label="Previous weeks">‹</button><strong>{label}</strong><button className="arrow next" onClick={onNext} aria-label="Next weeks">›</button></div>}
+function Logo(){return <div className="brand"><div className="logo"><svg viewBox="0 0 48 48" fill="none" aria-hidden="true"><ellipse cx="24" cy="24" rx="21" ry="10" transform="rotate(-25 24 24)" stroke="white" strokeWidth="2"/><path d="M8 27h9l3-7 4 11 4-14 3 7h9" stroke="white" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg></div><span>PULSO</span></div>}
+function App(){
+ const [page,setPage]=useState<Page>('Home'); const [items,setItems]=useState<Deadline[]>(sampleDeadlines); const [week,setWeek]=useState(8); const [crunchStart,setCrunchStart]=useState(7); const [timelineStart,setTimelineStart]=useState(8); const [subject,setSubject]=useState('All Subjects'); const [type,setType]=useState('All Type'); const [filterWeek,setFilterWeek]=useState('All weeks'); const [upload,setUpload]=useState(false); const [review,setReview]=useState<Deadline[]>([]); const [busy,setBusy]=useState(false); const [message,setMessage]=useState('');
+ const [contact,setContact]=useState(''); const [edit,setEdit]=useState(false); const [prefs,setPrefs]=useState([true,true,true,true,false]); const [timing,setTiming]=useState('3 days'); const [reduced,setReduced]=useState(false); const [larger,setLarger]=useState(false); const [passwords,setPasswords]=useState(['','','']); const [show,setShow]=useState([false,false,false]); const fileRef=useRef<HTMLInputElement>(null);
+ useEffect(()=>{try {const saved=localStorage.getItem(demoKey); if(saved)setItems(JSON.parse(saved)); const p=localStorage.getItem('pulso-settings');if(p){const s=JSON.parse(p);setContact(s.contact||'');setPrefs(s.prefs||[true,true,true,true,false]);setTiming(s.timing||'3 days');setReduced(!!s.reduced);setLarger(!!s.larger)}}catch{}},[]);
+ useEffect(()=>{if(!client)return; const db=client; (async()=>{try{await db.mutation(anyApi.workload.seed,{});const data=await db.query(anyApi.workload.list,{});if(data?.entries)setItems(data.entries.map((d:Deadline & {_id:string})=>({...d,id:d._id})));}catch{setMessage('Could not connect to Convex. Showing local demo data.')}})()},[]);
+ useEffect(()=>{document.documentElement.classList.toggle('reduce-motion',reduced);document.documentElement.classList.toggle('large-text',larger)},[reduced,larger]);
+ const saveSettings=(overrides:Record<string,unknown>={})=>localStorage.setItem('pulso-settings',JSON.stringify({contact,prefs,timing,reduced,larger,...overrides}));
+ const current=weekItems(items,8), score=load(current); const filtered=items.filter(i=>(subject==='All Subjects'||i.subject===subject)&&(type==='All Type'||i.type===type)&&(filterWeek==='All weeks'||i.weekStart===Number(filterWeek)));
+ const subjects=Array.from(new Set(items.map(i=>i.subject)));
+ const selectedItems=weekItems(items,week), selectedLoad=load(selectedItems); const visibleWeeks=Array.from({length:4},(_,i)=>crunchStart+i); const lightWeek=visibleWeeks.filter(w=>w>week).sort((a,b)=>load(weekItems(items,a))-load(weekItems(items,b)))[0];
+ const timelineWeeks=Array.from({length:3},(_,i)=>timelineStart+i); const busiest=timelineWeeks.reduce((a,b)=>load(weekItems(filtered,a))>=load(weekItems(filtered,b))?a:b); const lighter=timelineWeeks.filter(w=>w>busiest).sort((a,b)=>load(weekItems(filtered,a))-load(weekItems(filtered,b)))[0];
+ async function readFile(file:File){setBusy(true);setMessage('');try {let text=''; if(file.name.toLowerCase().endsWith('.docx')){const mammoth=await import('mammoth');text=(await mammoth.extractRawText({arrayBuffer:await file.arrayBuffer()})).value;}else if(file.name.toLowerCase().endsWith('.pdf')){const pdfjs=await import('pdfjs-dist');pdfjs.GlobalWorkerOptions.workerSrc='/pdf.worker.min.mjs';const pdf=await pdfjs.getDocument({data:await file.arrayBuffer()}).promise;for(let i=1;i<=pdf.numPages;i++){const content=await (await pdf.getPage(i)).getTextContent();text+=content.items.map(x=>'str' in x?x.str:'').join(' ')+'\n';}}else throw new Error('Please choose a PDF or DOCX file.');
+ // Send only the relevant sections, never the entire syllabus.
+ const lines=text.split(/\n/); let keeping=false; const sections:string[]=[];for(const line of lines){if(/teaching\s*(and|&)\s*learning\s*matrix|grading\s*(system|section|criteria|policy)?|evaluation\s*(criteria|system)/i.test(line))keeping=true;else if(keeping && /^\s*(references|bibliography|course policies|institutional policies)\s*$/i.test(line))keeping=false;if(keeping)sections.push(line)}
+ if(!sections.length)throw new Error('Could not find a Teaching and Learning Matrix or grading section. Please check the document.');if(!client)throw new Error('Connect a Convex deployment and configure an AI key to extract this syllabus. See the setup instructions.');
+ const result=await client.action(anyApi.syllabus.extract,{text:sections.join('\n').slice(0,50000)});if(!Array.isArray(result)||!result.length)throw new Error('No deadlines were found in the selected sections.');setReview(result.map((x:Partial<Deadline>,i:number)=>({id:`upload-${Date.now()}-${i}`,subject:x.subject||'',title:x.title||'',type:x.type||'activity',weekStart:x.weekStart||1,weekEnd:x.weekEnd||x.weekStart||1,day:0,weightPercent:x.weightPercent||0,major:!!x.major,estimated:(x.weekEnd||x.weekStart||1)>(x.weekStart||1),source:'syllabus'})));}catch(e){setMessage(e instanceof Error?e.message:'Could not read this file.');}finally{setBusy(false)}}
+ async function saveReview(){if(review.some(i=>!i.subject.trim()||!i.title.trim()||i.weekStart<1||i.weekEnd<i.weekStart||i.weightPercent<0||i.weightPercent>100)){setMessage('Complete each row with a subject, title, valid week range and weight from 0 to 100.');return}if(review.some(i=>i.type==='exam')){setMessage('Exams are set by the Dean. Remove exam rows before saving your syllabus deadlines.');return}try{if(client){await client.mutation(anyApi.workload.add,{items:review.map(({subject,title,type,weekStart,weekEnd,day,weightPercent,major})=>({subject,title,type,weekStart,weekEnd,day,weightPercent,major}))});const data=await client.query(anyApi.workload.list,{});setItems(data.entries.map((d:Deadline & {_id:string})=>({...d,id:d._id})));}else{const next=[...items,...review.map(i=>({...i,estimated:i.weekEnd>i.weekStart}))];setItems(next);localStorage.setItem(demoKey,JSON.stringify(next));}setReview([]);setUpload(false);setMessage(client?'Deadlines saved to the demo database.':'Deadlines saved on this device.');}catch(e){setMessage(e instanceof Error?e.message:'Could not save deadlines.')}}
+ return <div className="app"><aside className="sidebar"><Logo/><div className="menu-label">MENU</div><nav aria-label="Main navigation">{pages.map(p=><button key={p} className={'nav-button '+(page===p?'active':'')} onClick={()=>{setPage(p);setMessage('')}} aria-current={page===p?'page':undefined}>{p}</button>)}</nav><button className="logout" onClick={()=>setMessage('Sign out requires a connected university account.')}>Logout</button></aside><main className="main"><div className="content">{message&&!upload&&<div className="notice" role="status">{message}<button onClick={()=>setMessage('')} aria-label="Dismiss">×</button></div>}
+ {page==='Home'&&<><header className="page-header home-header"><div><div className="eyebrow">YOUR STUDENT DASHBOARD <span> / </span> WEEK 8</div><h1>Week 8 · {range(8)}</h1><p>Your workload this week</p></div><button className="primary" onClick={()=>{setUpload(true);setMessage('')}}><span className="plus">＋</span> Upload syllabus</button></header><div className="home-grid"><div><div className="load-card card"><div className="ring" style={{background:`conic-gradient(#C0392B ${Math.min(score/12,1)*100}%, #FEE2E2 0)`}}><div>{score.toFixed(1)}</div></div><div><Chip value={band(score)} text={`${band(score)} week`}/><p>{breakdown(current)}</p><p>{range(8)} · Plan ahead and start early.</p></div></div><div className="section-heading"><h2>Due this week</h2><span>{current.length} deadlines</span></div><div className="stack">{current.length?current.map(i=><DeadlineCard key={i.id} item={i}/>):<div className="empty card">No deadlines this week. Enjoy the breathing room.</div>}</div></div><div className="home-right"><section className="card next-weeks"><div className="card-heading"><h2>Next weeks</h2><span>YOUR OUTLOOK</span></div>{[7,8,9,10].map(w=><button key={w} className="week-row" onClick={()=>{setWeek(w);setCrunchStart(7);setPage('Crunch Weeks')}}><strong>W{w} · {range(w)}</strong><Chip value={band(load(weekItems(items,w)))}/></button>)}</section><section className="card study-plan"><div className="card-heading"><h2>Study plan</h2><span>WEEK 8</span></div><p className="card-description">A little progress each day adds up.</p><ul>{Array.from({length:7},(_,i)=><li key={i}><span>{shortDate(dateFor(8,i))}</span> · {i===0?'Start project report':i===1?'Review midterm notes':i===2?'Exam, then project polish':i===3?'Project demo and review':'Review notes and plan ahead'}</li>)}</ul></section></div></div></>}
+ {page==='Timeline'&&<><header className="page-header"><div><div className="eyebrow">YOUR WORKLOAD <span> / </span> TIMELINE</div><h1>Your timeline</h1><p>See how your deadlines are spread across the term.</p></div></header><div className="filters"><label><span className="sr-only">Filter by subject</span><select value={subject} onChange={e=>setSubject(e.target.value)}><option>All Subjects</option>{subjects.map(s=><option key={s}>{s}</option>)}</select></label><label><span className="sr-only">Filter by type</span><select value={type} onChange={e=>setType(e.target.value)}><option>All Type</option>{['quiz','activity','exam','performance'].map(t=><option key={t} value={t}>{t[0].toUpperCase()+t.slice(1)}</option>)}</select></label><label><span className="sr-only">Filter by week</span><select value={filterWeek} onChange={e=>setFilterWeek(e.target.value)}><option>All weeks</option>{Array.from({length:16},(_,i)=><option key={i} value={i+1}>Week {i+1} · {range(i+1)}</option>)}</select></label></div><Pager label={`${dateFor(timelineStart).toLocaleDateString('en-US',{month:'long',timeZone:'UTC'})} · Weeks ${timelineStart}–${timelineStart+2}`} disabled={timelineStart<=1} onPrev={()=>setTimelineStart(Math.max(1,timelineStart-3))} onNext={()=>setTimelineStart(timelineStart+3)}/><div className="timeline-grid">{timelineWeeks.map((w,index)=>{const list=weekItems(filtered,w);return <section key={w} className={'timeline-week '+(index===0?'featured-week':'')}><div className="week-heading"><h2>Week {w} · {range(w)}</h2><Chip value={band(load(list))}/></div>{list.length?list.map(i=><div className="timeline-entry" key={i.id}><div className="date-gutter">{dateLabel(i).split(', ')[0]}<br/>{dateLabel(i).split(', ')[1]}</div><DeadlineCard item={i} timeline/></div>):<div className="empty card">No matching deadlines.</div>}{w===busiest&&list.length>0&&<div className="card callout"><Chip value={band(load(list))} text="Busy period"/><h3>Prepare before the busiest days</h3><p>{breakdown(list)} this week. Start flexible work early and leave time to review.</p></div>}{w===lighter&&<div className="card callout tinted"><Chip value="Light" text="Plan ahead"/><h3>Week {w} gives you room</h3><p>{range(w)} is {band(load(list))}. Use it for longer reading and preparation for the next assessment.</p></div>}</section>})}</div></>}
+ {page==='Crunch Weeks'&&<><header className="page-header"><div><div className="eyebrow">YOUR WORKLOAD <span> / </span> CRUNCH WEEKS</div><h1>Your crunch weeks</h1><p>A look ahead at your workload, not everyone else’s.</p></div></header><Pager label={`Weeks ${crunchStart}–${crunchStart+3} · ${shortDate(dateFor(crunchStart))}–${shortDate(dateFor(crunchStart+3,6))}`} disabled={crunchStart<=1} onPrev={()=>{const s=Math.max(1,crunchStart-4);setCrunchStart(s);setWeek(s)}} onNext={()=>{setCrunchStart(crunchStart+4);setWeek(crunchStart+4)}}/><div className="week-cards">{visibleWeeks.map(w=><WeekCard key={w} week={w} items={items} selected={week===w} onClick={()=>setWeek(w)}/>)}</div><div className="selected-heading"><h2>Week {week} · {range(week)}</h2><Chip value={band(selectedLoad)}/></div><div className="crunch-grid"><div className="stack"><div className="card summary"><h3>{selectedLoad===Math.max(...visibleWeeks.map(w=>load(weekItems(items,w))))&&selectedLoad>0?'Your busiest upcoming week':'Your workload this week'} · Load {selectedLoad.toFixed(1)}</h3><p>{breakdown(selectedItems)}</p><p>{selectedItems.length?'Start flexible work early and make time to review.':'No deadlines scheduled for this week.'}</p></div>{selectedItems.map(i=><DeadlineCard key={i.id} item={i}/>)}</div><div className="stack"><div className="card callout tinted"><h3>A lighter week to plan around</h3>{lightWeek?<><Chip value={band(load(weekItems(items,lightWeek)))} text={`W${lightWeek} · Load ${load(weekItems(items,lightWeek)).toFixed(1)}`}/><p>Use {range(lightWeek)} for longer reading and preparation. For Week {week}, start flexible work early.</p></>:<p>Move forward to see more weeks in your term.</p>}</div><div className="card callout"><h3>Why Week {week} stands out</h3><p>{breakdown(selectedItems)} {selectedItems.length?'fall in this week. Exams stay fixed; start flexible work earlier.':'are scheduled.'}</p>{selectedItems.some(i=>i.type==='exam')&&<span className="tag">Exams are Dean-set</span>}</div></div></div></>}
+ {page==='Profile'&&<><header className="page-header"><div><div className="eyebrow">YOUR ACCOUNT <span> / </span> PROFILE</div><h1>Profile</h1><p>Your account, preferences and security.</p></div></header><section className="card profile-intro"><div className="avatar">SN</div><div><h2>Student Name</h2><span className="student-label">Student</span><p>student@example.edu</p></div><button className="primary edit-profile" onClick={()=>{if(edit)saveSettings();setEdit(!edit)}}>{edit?'Save Profile':'Edit Profile'}</button></section><div className="profile-grid"><div className="stack"><section className="card profile-card"><h2>Personal information</h2><p className="card-description">Your contact details. Select Edit Profile to make changes.</p><div className="detail"><label>Full name</label><div>Student Name</div></div><div className="detail"><label>University email</label><div>student@example.edu</div></div><div className="detail"><label htmlFor="contact">Contact number (optional)</label>{edit?<input id="contact" value={contact} onChange={e=>setContact(e.target.value)} placeholder="Add contact number"/>:<div>{contact||'Not provided'}</div>}</div><p className="footnote">Email is managed by your university.</p></section><section className="card profile-card"><h2>Academic information</h2><p className="card-description">University-managed · read-only</p>{[['Student ID','STU-000000'],['Program / course','Information Technology (IT)'],['Year level','Year 3'],['Current term','Semester 1 · AY 2026–2027'],['Section / block','IT3 · Section A']].map(([l,v])=><label className="field" key={l}>{l}<input value={v} readOnly/></label>)}<p className="footnote">Contact your department to correct these details.</p></section></div><div className="stack"><section className="card profile-card"><h2>Student workload preferences</h2><p className="card-description">In-app reminders for your personal workload.</p>{[['Upcoming deadlines','Remind me before a deadline.'],['Workload changes','When my deadline load changes.'],['Heavy-week alerts','When my week becomes Heavy.'],['Critical-week alerts','When my week becomes Critical.'],['Study-plan reminders','Nudges to keep my study plan on track.']].map(([label,help],i)=><Toggle key={label} label={label} help={help} checked={prefs[i]} onChange={()=>setPrefs(prefs.map((v,j)=>i===j?!v:v))}/>)}<div className="field">Deadline reminder timing<div className="segments">{['1 day','3 days','1 week'].map(t=><button key={t} className={timing===t?'chosen':''} onClick={()=>setTiming(t)} aria-pressed={timing===t}>{t}</button>)}</div></div><button className="primary" onClick={()=>{saveSettings();setMessage('Preferences saved on this device.')}}>Save Preferences</button></section><section className="card profile-card"><h2>Appearance and accessibility</h2><p className="card-description">Pulso uses Light Mode.</p><Toggle label="Reduced motion" help="Limit nonessential transitions." checked={reduced} onChange={()=>{setReduced(!reduced);saveSettings({reduced:!reduced})}}/><Toggle label="Larger text" help="Use a more comfortable reading size." checked={larger} onChange={()=>{setLarger(!larger);saveSettings({larger:!larger})}}/><p className="footnote">Accessibility choices save automatically on this device.</p></section><section className="card profile-card"><h2>Account and security</h2><p className="card-description">Change your password to keep your account secure.</p>{['Current Password','New Password','Confirm New Password'].map((label,i)=><label className="field" key={label}>{label}<div className="password"><input type={show[i]?'text':'password'} value={passwords[i]} onChange={e=>setPasswords(passwords.map((v,j)=>j===i?e.target.value:v))}/><button onClick={()=>setShow(show.map((v,j)=>j===i?!v:v))} type="button">{show[i]?'Hide':'Show'}</button></div></label>)}<p className="footnote">Use at least 12 characters, including a number and a symbol.</p><button className="secondary" onClick={()=>{if(!passwords[0]||passwords[1].length<12||!/[0-9]/.test(passwords[1])||!/[\W_]/.test(passwords[1]))setMessage('Enter your current password and a new password with at least 12 characters, a number and a symbol.');else if(passwords[1]!==passwords[2])setMessage('New passwords do not match.');else setMessage('Password changes require a connected university account.')}}>Change Password</button></section><section className="card profile-card"><h2>Account actions</h2><p className="card-description">Sign out on this device. Your saved preferences stay with your account.</p><button className="secondary" onClick={()=>setMessage('Sign out requires a connected university account.')}>Sign Out</button></section></div></div></>}
+ </div></main>{upload&&<div className="modal-backdrop" role="presentation"><section className="modal" role="dialog" aria-modal="true" aria-labelledby="upload-title"><div className="modal-header"><div><div className="eyebrow">YOUR WORKLOAD / SYLLABUS</div><h2 id="upload-title">Upload a syllabus</h2></div><button className="close" onClick={()=>{setUpload(false);setReview([]);setMessage('')}} aria-label="Close">×</button></div><p>Choose a PDF or DOCX. We’ll extract deadlines from the teaching matrix and grading section for you to review.</p><input ref={fileRef} type="file" accept=".pdf,.docx" onChange={e=>{const f=e.target.files?.[0];if(f)readFile(f)}}/>{busy&&<p role="status">Reading and extracting deadlines…</p>}{message&&<p className="error" role="alert">{message}</p>}{review.length>0&&<><h3>Review extracted deadlines</h3><p>Check each item before saving. Week ranges are marked estimated.</p><div className="table-wrap"><table><thead><tr>{['Subject','Title','Type','Week from','Week to','Weight %','Major',''].map(h=><th key={h}>{h}</th>)}</tr></thead><tbody>{review.map((r,i)=><tr key={r.id}>{(['subject','title'] as const).map(k=><td key={k}><input aria-label={k} value={r[k]} onChange={e=>setReview(review.map((x,j)=>j===i?{...x,[k]:e.target.value}:x))}/></td>)}<td><select aria-label="Type" value={r.type} onChange={e=>setReview(review.map((x,j)=>j===i?{...x,type:e.target.value as Kind}:x))}>{['quiz','activity','exam','performance'].map(t=><option key={t}>{t}</option>)}</select></td>{(['weekStart','weekEnd','weightPercent'] as const).map(k=><td key={k}><input aria-label={k} type="number" min={k==='weightPercent'?0:1} value={r[k]} onChange={e=>setReview(review.map((x,j)=>j===i?{...x,[k]:Number(e.target.value)}:x))}/>{k==='weekEnd'&&r.weekEnd>r.weekStart&&<span className="tag estimated">Estimated</span>}</td>)}<td><input aria-label="Major subject" type="checkbox" checked={r.major} onChange={e=>setReview(review.map((x,j)=>j===i?{...x,major:e.target.checked}:x))}/></td><td><button className="text-button" onClick={()=>setReview(review.filter((_,j)=>i!==j))}>Remove</button></td></tr>)}</tbody></table></div><button className="primary" onClick={saveReview}>Save deadlines</button></>}</section></div>}</div>
 }
-
-function ProgressRing({ value }: { value: number }) {
-  const radius = 23;
-  const circumference = 2 * Math.PI * radius;
-  return (
-    <div className="ring" style={{ "--progress": `${value}%` } as React.CSSProperties}>
-      <svg viewBox="0 0 56 56" aria-hidden="true">
-        <circle className="ring-track" cx="28" cy="28" r={radius} />
-        <circle
-          className="ring-value"
-          cx="28"
-          cy="28"
-          r={radius}
-          style={{ strokeDasharray: circumference, strokeDashoffset: circumference * (1 - value / 100) }}
-        />
-      </svg>
-      <strong>{value}%</strong>
-    </div>
-  );
-}
-
-export default function Home() {
-  const [activeNav, setActiveNav] = useState("Overview");
-  const [menuOpen, setMenuOpen] = useState(false);
-
-  return (
-    <main className="app-shell">
-      <aside className={`sidebar ${menuOpen ? "sidebar-open" : ""}`}>
-        <div className="brand">
-          <span className="brand-mark">a</span>
-          <span>acadence</span>
-        </div>
-        <div className="workspace-label">Workspace</div>
-        <nav className="main-nav" aria-label="Main navigation">
-          {navigation.map((item) => (
-            <button
-              className={`nav-item ${activeNav === item.label ? "active" : ""}`}
-              key={item.label}
-              onClick={() => {
-                setActiveNav(item.label);
-                setMenuOpen(false);
-              }}
-            >
-              <Icon name={item.icon} />
-              {item.label}
-              {item.label === "Assignments" && <span className="nav-count">3</span>}
-            </button>
-          ))}
-        </nav>
-        <div className="sidebar-bottom">
-          <button className="nav-item">
-            <Icon name="settings" />
-            Settings
-          </button>
-          <div className="profile">
-            <div className="avatar">JD</div>
-            <div>
-              <strong>Jordan Davis</strong>
-              <span>Computer Science</span>
-            </div>
-            <span className="profile-more">•••</span>
-          </div>
-        </div>
-      </aside>
-
-      <section className="content">
-        <header className="topbar">
-          <button className="menu-toggle" onClick={() => setMenuOpen(!menuOpen)} aria-label="Toggle navigation">
-            <span />
-            <span />
-            <span />
-          </button>
-          <div className="breadcrumb"><span>Workspace</span><b>/</b> {activeNav}</div>
-          <div className="top-actions">
-            <button className="icon-button notification" aria-label="Notifications"><span>2</span>◌</button>
-            <div className="top-avatar">JD</div>
-          </div>
-        </header>
-
-        <div className="page-content">
-          <section className="welcome-row">
-            <div>
-              <p className="eyebrow">Tuesday, October 14, 2025</p>
-              <h1>Good morning, Jordan <span>✦</span></h1>
-              <p className="muted">Here&apos;s what&apos;s happening with your learning today.</p>
-            </div>
-            <button className="primary-button">+ Add to schedule</button>
-          </section>
-
-          <section className="stats-grid" aria-label="Learning summary">
-            <article className="stat-card highlight">
-              <div className="stat-icon">◒</div>
-              <div><span className="stat-label">Weekly focus</span><strong>12h 45m</strong><small><b>↑ 18%</b> vs last week</small></div>
-              <div className="mini-bars" aria-hidden="true"><i /><i /><i /><i /><i /><i /><i /></div>
-            </article>
-            <article className="stat-card">
-              <div className="stat-icon purple-icon">✓</div>
-              <div><span className="stat-label">Completed</span><strong>24 tasks</strong><small><b>8 this week</b></small></div>
-            </article>
-            <article className="stat-card">
-              <div className="stat-icon teal-icon">◷</div>
-              <div><span className="stat-label">Current streak</span><strong>7 days</strong><small>Personal best: <b>12 days</b></small></div>
-              <span className="flame">♨</span>
-            </article>
-          </section>
-
-          <div className="dashboard-grid">
-            <section className="panel courses-panel">
-              <div className="panel-heading"><div><p className="eyebrow">Your semester</p><h2>Course progress</h2></div><button className="text-button">View all <span>→</span></button></div>
-              <div className="course-list">
-                {courses.map((course) => (
-                  <article className="course-row" key={course.code}>
-                    <div className={`course-badge ${course.color}`}>{course.code.split(" ")[0].slice(0, 2)}</div>
-                    <div className="course-name"><strong>{course.title}</strong><span>{course.code}</span></div>
-                    <div className="course-progress"><div className="progress-label"><span>Progress</span><b>{course.progress}%</b></div><div className="progress-bar"><i className={course.color} style={{ width: `${course.progress}%` }} /></div></div>
-                    <div className="course-next"><span>{course.nextLabel}</span><b>{course.next}</b></div>
-                    <button className="row-arrow" aria-label={`Open ${course.title}`}>↗</button>
-                  </article>
-                ))}
-              </div>
-            </section>
-
-            <section className="panel focus-panel">
-              <div className="panel-heading"><div><p className="eyebrow">Your goal</p><h2>Weekly focus</h2></div><button className="more-button" aria-label="More options">•••</button></div>
-              <div className="focus-content"><ProgressRing value={68} /><div><strong>Almost there</strong><p>Keep this pace and you&apos;ll hit your weekly goal.</p></div></div>
-              <div className="focus-meta"><span><i className="dot coral-dot" /> 8h 40m completed</span><span>Goal: <b>12h 45m</b></span></div>
-            </section>
-
-            <section className="panel schedule-panel">
-              <div className="panel-heading"><div><p className="eyebrow">Tuesday, Oct 14</p><h2>Today&apos;s schedule</h2></div><button className="text-button">Calendar <span>→</span></button></div>
-              <div className="schedule-list">
-                {schedule.map((item) => (
-                  <div className="schedule-row" key={item.time}><time>{item.time}</time><div className={`schedule-line ${item.color}`} /><div className="schedule-info"><strong>{item.title}</strong><span>{item.course} <em>·</em> {item.type}</span></div><button className="row-arrow" aria-label={`Open ${item.title}`}>↗</button></div>
-                ))}
-              </div>
-            </section>
-
-            <section className="panel tasks-panel">
-              <div className="panel-heading"><div><p className="eyebrow">Due soon</p><h2>Upcoming tasks</h2></div><button className="text-button">See all <span>→</span></button></div>
-              <div className="task-list">
-                <label className="task-row"><input type="checkbox" /><span className="fake-check" /><span><strong>Implement BFS & DFS</strong><small>CS 204 · Assignment</small></span><time>Today</time></label>
-                <label className="task-row"><input type="checkbox" /><span className="fake-check" /><span><strong>Read chapter 5 notes</strong><small>MATH 118 · Reading</small></span><time>Tomorrow</time></label>
-                <label className="task-row done-task"><input type="checkbox" checked readOnly /><span className="fake-check" /><span><strong>Submit moodboard</strong><small>DES 101 · Assignment</small></span><time>Oct 17</time></label>
-              </div>
-            </section>
-          </div>
-        </div>
-      </section>
-    </main>
-  );
-}
+function Toggle({label,help,checked,onChange}:{label:string;help:string;checked:boolean;onChange:()=>void}){return <div className="toggle-row"><div><strong>{label}</strong><p>{help}</p></div><button className="toggle-control" role="switch" aria-checked={checked} aria-label={label} onClick={onChange}><span className={'switch '+(checked?'on':'')}><span/></span><span>{checked?'On':'Off'}</span></button></div>}
+export default App;
