@@ -68,3 +68,19 @@ export async function listStudentCoursework(token:string,courseId:string,fetcher
   return {googleCourseId:courseId,googleCourseWorkId:requiredString(w.id),title:requiredString(w.title),state:'PUBLISHED' as const,dueDate:dueDate(w.dueDate),sourceUrl:classroomUrl(w.alternateLink),updatedAt};
  });
 }
+
+export type TeacherCoursework=StudentCoursework & {workType:string;description:string};
+export async function listTeacherCourses(token:string,fetcher:Fetcher=fetch):Promise<StudentCourse[]>{
+ const data=await pages('courses',new URLSearchParams({teacherId:'me',courseStates:'ACTIVE',pageSize:'100'}),'courses',token,fetcher);
+ return data.map(item=>{const c=record(item);return {googleCourseId:requiredString(c.id),name:requiredString(c.name)};});
+}
+export async function listTeacherCoursework(token:string,courseId:string,fetcher:Fetcher=fetch):Promise<TeacherCoursework[]>{
+ if(!courseId||courseId==='.'||courseId==='..')throw new Error('Invalid Classroom course ID.');
+ const data=await pages(`courses/${encodeURIComponent(courseId)}/courseWork`,new URLSearchParams({courseWorkStates:'PUBLISHED',pageSize:'100'}),'courseWork',token,fetcher);
+ return data.map(item=>{
+  const w=record(item);if(w.state!=='PUBLISHED')throw new Error('Unexpected Classroom coursework state.');
+  const updatedAt=Date.parse(requiredString(w.updateTime));if(Number.isNaN(updatedAt))throw new Error('Invalid Classroom update time.');
+  if(w.description!==undefined&&typeof w.description!=='string')throw new Error('Invalid Classroom description.');
+  return {googleCourseId:courseId,googleCourseWorkId:requiredString(w.id),title:requiredString(w.title),state:'PUBLISHED' as const,dueDate:dueDate(w.dueDate),sourceUrl:classroomUrl(w.alternateLink),updatedAt,workType:requiredString(w.workType),description:(w.description as string||'').slice(0,4000)};
+ });
+}

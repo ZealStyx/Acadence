@@ -6,7 +6,8 @@ import * as sections from '../convex/sections';
 import * as assessments from '../convex/assessments';
 import * as student from '../convex/student';
 import * as admin from '../convex/admin';
-const {api,createTest}=defineTestApp({schema}).defineModules({accounts,sections,assessments,student,admin});
+import * as instructor from '../convex/instructor';
+const {api,createTest}=defineTestApp({schema}).defineModules({accounts,sections,assessments,student,admin,instructor});
 const who=(email:string,verified=true)=>({subject:email,tokenIdentifier:`https://securetoken.google.com/test-project|${email}`,email,emailVerified:verified,name:email});
 beforeEach(()=>{process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL='0000-0000@lspu.edu.ph'});
 describe('Convex authorization and shared deadlines',()=>{
@@ -73,8 +74,27 @@ describe('Convex authorization and shared deadlines',()=>{
   await a.mutation(api.accounts.updateProfile,{name:'  Alice  ',contact:' 12345 '});
   expect((await a.query(api.accounts.me,{})).name).toBe('Alice');expect((await a.query(api.accounts.me,{})).contact).toBe('12345');
   expect((await b.query(api.accounts.me,{})).name).toBe('b@lspu.edu.ph');
+  await a.mutation(api.accounts.setAccessibility,{largerText:true,reducedMotion:true});expect((await a.query(api.accounts.me,{})).largerText).toBe(true);expect((await b.query(api.accounts.me,{})).largerText).toBeUndefined();
   await expect(a.mutation(api.accounts.updateProfile,{name:' ',contact:''})).rejects.toThrow();
   await expect(t.mutation(api.accounts.updateProfile,{name:'Bad',contact:''})).rejects.toThrow();
+ });
+ it('restricts instructor overview and includes section-wide deadlines and type-filtered admin heatmap',async()=>{
+  const t=createTest(),root=t.withIdentity(who('0000-0000@lspu.edu.ph'));await root.mutation(api.accounts.bootstrapAdmin,{});
+  const tid=await root.mutation(api.accounts.provision,{email:'teacher@lspu.edu.ph',name:'Teacher',role:'instructor'});
+  const sid=await root.mutation(api.accounts.provision,{email:'stranger@lspu.edu.ph',name:'Student',role:'student'});
+  const section=await root.mutation(api.sections.createAcademic,{code:'3IS1',program:'BSIT',yearLevel:3,term:'Term 1'});
+  const course=await root.mutation(api.sections.create,{academicSectionId:section,instructorId:tid,subject:'IT1',name:'Subject'});
+  for(let i=0;i<5;i++){const id=await root.mutation(api.accounts.provision,{email:`member${i}@lspu.edu.ph`,name:'Member',role:'student'});await root.mutation(api.sections.enroll,{studentId:id,academicSectionId:section});}
+  const teacher=t.withIdentity(who('teacher@lspu.edu.ph'));await teacher.mutation(api.accounts.linkApprovedAccount,{});
+  await teacher.mutation(api.assessments.create,{courseId:course,title:'Quiz',type:'quiz',dueDate:'2026-12-08',weightPercent:0,major:false});
+  await teacher.mutation(api.assessments.create,{courseId:course,title:'Exam',type:'exam',dueDate:'2026-12-09',weightPercent:0,major:true});
+  const data=await teacher.query(api.instructor.overview,{weekStarts:['2026-12-07']});
+  expect(data[0].studentCount).toBe(5);expect(data[0].weeks[0].load).toBe(4);expect(data[0].entries).toHaveLength(2);
+  const filtered=await root.query(api.admin.heatmap,{weekStarts:['2026-12-07'],type:'exam'});expect(filtered[0].weeks[0].averageLoad).toBe(3);
+  const learner=t.withIdentity(who('stranger@lspu.edu.ph'));await learner.mutation(api.accounts.linkApprovedAccount,{});
+  await expect(learner.query(api.instructor.overview,{weekStarts:['2026-12-07']})).rejects.toThrow();
+  await expect(teacher.query(api.admin.heatmap,{weekStarts:['2026-12-07']})).rejects.toThrow();
+  expect(sid).toBeDefined();
  });
  it('accepts university emails without a verification flag and rejects other domains',async()=>{
   const t=createTest();const good=t.withIdentity(who('0324-2225@lspu.edu.ph'));expect((await good.query(api.accounts.status,{})).state).toBe('unapproved');
@@ -94,10 +114,11 @@ describe('Convex authorization and shared deadlines',()=>{
   await root.mutation(api.sections.enroll,{studentId:learner,academicSectionId:cohort});await expect(root.mutation(api.sections.enroll,{studentId:learner,academicSectionId:cohort})).rejects.toThrow();
   const instructor=t.withIdentity(who('1111-1111@lspu.edu.ph')),outsider=t.withIdentity(who('2222-2222@lspu.edu.ph')),student=t.withIdentity(who('3333-3333@lspu.edu.ph'));
   await instructor.mutation(api.accounts.linkApprovedAccount,{});await outsider.mutation(api.accounts.linkApprovedAccount,{});await student.mutation(api.accounts.linkApprovedAccount,{});
-  const fields={courseId:course,title:'Project',type:'performance' as const,dueDate:'2026-12-10',weightPercent:25,major:true};
+  const fields={courseId:course,title:'Project',type:'activity' as const,dueDate:'2026-12-10',weightPercent:25,major:true};
   await expect(outsider.mutation(api.assessments.create,fields)).rejects.toThrow();await expect(student.mutation(api.assessments.create,fields)).rejects.toThrow();
-  const id=await instructor.mutation(api.assessments.create,fields);let timeline=await student.query(api.student.timeline,{});expect(timeline.entries).toHaveLength(1);expect(timeline.weeks[0].load).toBe(5);
-  const impact=await instructor.query(api.assessments.collision,{courseId:course,dueDate:'2026-12-10',type:'quiz',weightPercent:0,major:true});expect(impact.unmapped).toBe(false);if(impact.unmapped)throw Error('unmapped');expect(impact.totalStudents).toBe(1);expect(impact.current.load).toBe(6);expect(impact.suggestions).toHaveLength(3);
+  await expect(instructor.mutation(api.assessments.create,{...fields,type:'performance'})).rejects.toThrow();
+  const id=await instructor.mutation(api.assessments.create,fields);let timeline=await student.query(api.student.timeline,{});expect(timeline.entries).toHaveLength(1);expect(timeline.weeks[0].load).toBe(2.5);
+  const impact=await instructor.query(api.assessments.collision,{courseId:course,dueDate:'2026-12-10',type:'quiz',weightPercent:0,major:true});expect(impact.unmapped).toBe(false);if(impact.unmapped)throw Error('unmapped');expect(impact.totalStudents).toBe(1);expect(impact.current.load).toBe(3.5);expect(impact.suggestions).toHaveLength(3);
   await instructor.mutation(api.assessments.update,{assessmentId:id,title:'Revised',type:'quiz',dueDate:'2026-12-11',weightPercent:10,major:false});timeline=await student.query(api.student.timeline,{});expect(timeline.entries[0].title).toBe('Revised');
   await instructor.mutation(api.assessments.remove,{assessmentId:id});expect((await student.query(api.student.timeline,{})).entries).toHaveLength(0);
   await expect(t.withIdentity(who('2222-2222@lspu.edu.ph')).query(api.admin.heatmap,{weekStarts:['2026-12-07']})).rejects.toThrow();

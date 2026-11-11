@@ -44,8 +44,21 @@ describe('saved Classroom connection authorization',()=>{
   await bob.mutation(api.classroom.removeConnection,{});
   expect(await alice.query(api.classroom.connection,{})).not.toBeNull();
   await expect(t.query(api.classroom.connection,{})).rejects.toThrow();
-  await expect(t.withIdentity(identity('teacher')).query(api.classroom.connection,{})).rejects.toThrow();
+  expect(await t.withIdentity(identity('teacher')).query(api.classroom.connection,{})).toBeNull();
   await alice.mutation(api.classroom.removeConnection,{});
   expect(await alice.query(api.classroom.connection,{})).toBeNull();
+ });
+});
+
+describe('instructor Classroom reviews',()=>{
+ it('stores teacher decisions privately and allows revisions',async()=>{
+  const t=createTest();await t.run(async ctx=>{for(const uid of ['teacher','other'])await ctx.db.insert('accounts',{firebaseUid:uid,email:`${uid}@lspu.edu.ph`,name:uid,role:'instructor',active:true});await ctx.db.insert('accounts',{firebaseUid:'student',email:'student@lspu.edu.ph',name:'student',role:'student',active:true})});
+  const teacher=t.withIdentity(identity('teacher')),other=t.withIdentity(identity('other')),student=t.withIdentity(identity('student'));
+  const data={googleCourseId:'course',googleCourseWorkId:'work',category:'quiz' as const};
+  await teacher.mutation(api.classroom.confirmReview,data);await teacher.mutation(api.classroom.confirmReview,{...data,category:'exam'});
+  expect((await teacher.query(api.classroom.reviews,{})).map(r=>r.category)).toEqual(['exam']);
+  expect(await other.query(api.classroom.reviews,{})).toEqual([]);
+  await expect(student.query(api.classroom.reviews,{})).rejects.toThrow();
+  await expect(student.mutation(api.classroom.confirmReview,data)).rejects.toThrow();
  });
 });

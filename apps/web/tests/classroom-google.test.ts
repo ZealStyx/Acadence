@@ -1,5 +1,5 @@
 import {describe,it,expect,vi} from 'vitest';
-import {listStudentCourses,listStudentCoursework} from '../convex/classroomGoogle';
+import {listStudentCourses,listStudentCoursework,listTeacherCourses,listTeacherCoursework} from '../convex/classroomGoogle';
 const json=(body:unknown,status=200)=>new Response(JSON.stringify(body),{status,headers:{'Content-Type':'application/json'}});
 describe('Classroom student read helpers',()=>{
  it('fetches every active student course page using a bearer token',async()=>{
@@ -21,5 +21,14 @@ describe('Classroom student read helpers',()=>{
  it('does not leak response contents and fails on repeated pagination tokens',async()=>{
   await expect(listStudentCourses('token',vi.fn<typeof fetch>().mockResolvedValue(json({error:'secret token'},403)))).rejects.toThrow('Classroom request failed (403).');
   await expect(listStudentCourses('token',vi.fn<typeof fetch>().mockImplementation(async()=>json({nextPageToken:'same'})))).rejects.toThrow('Invalid Classroom pagination.');
+ });
+});
+
+describe('teacher Classroom coursework',()=>{
+ it('requests teacher courses and preserves published work type and description',async()=>{
+  const courses=vi.fn<typeof fetch>().mockResolvedValue(json({courses:[{id:'c',name:'Class'}]}));
+  expect(await listTeacherCourses('token',courses)).toEqual([{googleCourseId:'c',name:'Class'}]);expect(String(courses.mock.calls[0][0])).toContain('teacherId=me');
+  const work=vi.fn<typeof fetch>().mockResolvedValue(json({courseWork:[{id:'w',title:'Task',state:'PUBLISHED',workType:'ASSIGNMENT',description:'Prepare a report',updateTime:'2026-11-01T00:00:00Z'}]}));
+  const result=await listTeacherCoursework('token','c',work);expect(result[0].workType).toBe('ASSIGNMENT');expect(result[0].description).toBe('Prepare a report');
  });
 });
