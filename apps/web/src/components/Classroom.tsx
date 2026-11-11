@@ -2,6 +2,7 @@
 import {useRef,useState} from 'react';
 import {GoogleAuthProvider,reauthenticateWithPopup} from 'firebase/auth';
 import {firebaseAuth} from '@/lib/firebase';
+import {classroomError} from './classroomErrors';
 import {listStudentCourses,listStudentCoursework,type StudentCourse,type StudentCoursework} from '../../convex/classroomGoogle';
 
 type CourseResult={course:StudentCourse;work:StudentCoursework[];error:boolean};
@@ -21,6 +22,7 @@ export default function Classroom(){
   const user=firebaseAuth?.currentUser;
   if(!user){setError('Sign in again before connecting Classroom.');return;}
   setBusy(true);setError('');token.current=null;setCourses(null);
+  let stage:'popup'|'courses'='popup';
   try{
    const provider=new GoogleAuthProvider();
    provider.addScope('https://www.googleapis.com/auth/classroom.courses.readonly');
@@ -30,14 +32,15 @@ export default function Classroom(){
    const accessToken=GoogleAuthProvider.credentialFromResult(result)?.accessToken;
    if(!accessToken)throw new Error('Google did not provide Classroom access. Try connecting again.');
    token.current=accessToken;
+   stage='courses';
    await load(accessToken);
-  }catch{token.current=null;setCourses(null);setError('Could not connect to Google Classroom. Try again and allow access. Your school may restrict third-party apps.');}
+  }catch(e){token.current=null;setCourses(null);setError(classroomError(e,stage));}
   finally{setBusy(false)}
  }
  async function refresh(){
   if(!token.current)return;
   setBusy(true);setError('');
-  try{await load(token.current)}catch{token.current=null;setCourses(null);setError('Could not refresh Classroom. Your permission may have expired; connect again.');}finally{setBusy(false)}
+  try{await load(token.current)}catch(e){token.current=null;setCourses(null);setError(classroomError(e,'courses'));}finally{setBusy(false)}
  }
  function disconnect(){token.current=null;setCourses(null);setError('');}
  return <>

@@ -13,6 +13,8 @@ import type * as accounts from "../accounts.js";
 import type * as admin from "../admin.js";
 import type * as assessments from "../assessments.js";
 import type * as calculations from "../calculations.js";
+import type * as classroom from "../classroom.js";
+import type * as classroomGoogle from "../classroomGoogle.js";
 import type * as sections from "../sections.js";
 import type * as student from "../student.js";
 import type * as syllabus from "../syllabus.js";
@@ -30,6 +32,8 @@ declare const fullApi: ApiFromModules<{
   admin: typeof admin;
   assessments: typeof assessments;
   calculations: typeof calculations;
+  classroom: typeof classroom;
+  classroomGoogle: typeof classroomGoogle;
   sections: typeof sections;
   student: typeof student;
   syllabus: typeof syllabus;

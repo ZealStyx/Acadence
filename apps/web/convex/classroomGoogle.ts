@@ -2,6 +2,9 @@
  * from the browser with a short-lived Google access token held only in memory.
  * These helpers do not persist or log tokens.
  */
+export class ClassroomHttpError extends Error {
+ constructor(public readonly status:number){super(`Classroom request failed (${status}).`);this.name='ClassroomHttpError';}
+}
 const BASE='https://classroom.googleapis.com/v1/';
 const MAX_PAGES=100;
 type Fetcher=typeof fetch;
@@ -14,7 +17,7 @@ async function pages(path:string,params:URLSearchParams,field:string,token:strin
  for(let i=0;i<MAX_PAGES;i++){
   const url=new URL(path,BASE);url.search=params.toString();
   const response=await fetcher(url,{headers:{Authorization:`Bearer ${token}`},cache:'no-store'});
-  if(!response.ok)throw new Error(`Classroom request failed (${response.status}).`);
+  if(!response.ok)throw new ClassroomHttpError(response.status);
   const body:unknown=await response.json();
   if(!body||typeof body!=='object'||Array.isArray(body))throw new Error('Invalid Classroom response.');
   const data=body as Record<string,unknown>,records=data[field];
