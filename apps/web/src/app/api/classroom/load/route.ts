@@ -10,5 +10,8 @@ export async function POST(request:Request){try{
  if(typeof token.access_token!=='string')throw Error('Missing access');
  const courses=await (user.role==='student'?listStudentCourses(token.access_token):listTeacherCourses(token.access_token));
  const work=await Promise.allSettled(courses.map(c=>user.role==='student'?listStudentCoursework(token.access_token,c.googleCourseId):listTeacherCoursework(token.access_token,c.googleCourseId)));
- return Response.json({connected:true,courses:courses.map((course,i)=>({course,work:work[i].status==='fulfilled'?work[i].value:[],error:work[i].status==='rejected'}))},{headers:{'Cache-Control':'no-store'}});
+ const rows=courses.map((course,i)=>({course,work:work[i].status==='fulfilled'?work[i].value:[],error:work[i].status==='rejected'}));
+ let synced=false;const secret=process.env.CLASSROOM_SYNC_SECRET;
+ if(secret){try{await user.client.mutation(anyApi.classroom.syncSnapshot,{secret,courses:rows.map(({course,work,error})=>({...course,workAvailable:!error,work:user.role==='instructor'?work.map(w=>({googleCourseWorkId:w.googleCourseWorkId,title:w.title,...(w.dueDate?{dueDate:w.dueDate}:{}),...('assigneeMode' in w&&w.assigneeMode?{assigneeMode:w.assigneeMode}:{})})):[]}))});synced=true}catch{/* The personal view still works when shared sync fails. */}}
+ return Response.json({connected:true,courses:rows,synced},{headers:{'Cache-Control':'no-store'}});
  }catch{return errorResponse();}}
