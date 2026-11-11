@@ -17,7 +17,7 @@ describe('Classroom subject sync',()=>{
   await teacher.mutation(api.classroom.syncSnapshot,{secret,courses:[course]});await teacher2.mutation(api.classroom.syncSnapshot,{secret,courses:[course]});
   await teacher.mutation(api.classroom.confirmReview,{googleCourseId:'c',googleCourseWorkId:'w',category:'exam'});await teacher2.mutation(api.classroom.confirmReview,{googleCourseId:'c',googleCourseWorkId:'w',category:'exam'});await teacher.mutation(api.classroom.confirmReview,{googleCourseId:'c',googleCourseWorkId:'targeted',category:'exam'});
   for(let i=0;i<4;i++)await t.withIdentity(ident(`s${i}`)).mutation(api.classroom.syncSnapshot,{secret,courses:[{googleCourseId:'c',name:'Subject',workAvailable:true,work:[]}]});
-  let overview=await adminUser.query(api.admin.classroomOverview,{weekStarts:['2026-11-09']});expect(overview.subjects[0].eligible).toBe(false);expect(overview.subjects[0].weeks[0].load).toBeNull();expect(overview.subjects[0].weeks[0].items).toEqual([]);
+  let overview=await adminUser.query(api.admin.classroomOverview,{weekStarts:['2026-11-09']});expect(overview.syncConfigured).toBe(true);expect(overview.subjects[0].eligible).toBe(false);expect(overview.subjects[0].weeks[0].load).toBeNull();expect(overview.subjects[0].weeks[0].items).toEqual([]);
   await t.withIdentity(ident('s4')).mutation(api.classroom.syncSnapshot,{secret,courses:[{googleCourseId:'c',name:'Subject',workAvailable:true,work:[]}]});
   overview=await adminUser.query(api.admin.classroomOverview,{weekStarts:['2026-11-09']});expect(overview.subjects[0].studentCount).toBe(5);expect(overview.subjects[0].weeks[0].load).toBe(3);expect(overview.subjects[0].weeks[0].items).toHaveLength(1);
   expect((await t.withIdentity(ident('s0')).query(api.classroom.studentConfirmed,{})).entries.map(x=>x.title)).toEqual(['Exam']);
@@ -41,5 +41,15 @@ describe('instructor Classroom crunch weeks',()=>{
   await expect(t.withIdentity(ident('student')).query(api.instructor.classroomOverview,{weekStarts:['2026-11-09']})).rejects.toThrow();
   await expect(teacher.query(api.instructor.classroomOverview,{weekStarts:['2026-11-10']})).rejects.toThrow();
   delete process.env.CLASSROOM_SYNC_SECRET;
+ });
+});
+
+describe('admin sync diagnostics',()=>{
+ it('shows configuration state only to admins without exposing the secret',async()=>{
+  delete process.env.CLASSROOM_SYNC_SECRET;const t=createTest();await t.run(async ctx=>{await ctx.db.insert('accounts',{firebaseUid:'admin',email:'admin@lspu.edu.ph',name:'Admin',role:'admin',active:true});await ctx.db.insert('accounts',{firebaseUid:'teacher',email:'teacher@lspu.edu.ph',name:'Teacher',role:'instructor',active:true})});
+  const adminUser=t.withIdentity(ident('admin')),teacher=t.withIdentity(ident('teacher'));
+  await teacher.mutation(api.classroom.saveConnection,{encryptedRefreshToken:'v1.test'});
+  const data=await adminUser.query(api.admin.classroomOverview,{weekStarts:['2026-11-09']});expect(data.syncConfigured).toBe(false);expect(data.connectedInstructors).toBe(1);expect(JSON.stringify(data)).not.toContain('v1.test');
+  await expect(teacher.query(api.admin.classroomOverview,{weekStarts:['2026-11-09']})).rejects.toThrow();
  });
 });
