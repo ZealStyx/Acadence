@@ -20,6 +20,53 @@ describe('Convex authorization and shared deadlines',()=>{
   await root.mutation(api.accounts.provision,{email:'test@lspu.edu.ph',name:'Student',role:'student'});
   await expect(root.mutation(api.accounts.provision,{email:'test@lspu.edu.ph.example.com',name:'Invalid',role:'student'})).rejects.toThrow();
  });
+ it('automatically creates only a student account for a new university identity',async()=>{
+  const t=createTest(),admin=t.withIdentity(who('0000-0000@lspu.edu.ph'));
+  await expect(admin.mutation(api.accounts.registerStudent,{})).rejects.toThrow();
+  await admin.mutation(api.accounts.bootstrapAdmin,{});
+  const student=t.withIdentity(who('new@lspu.edu.ph',false));
+  expect((await student.query(api.accounts.status,{})).canRegister).toBe(true);
+  const id=await student.mutation(api.accounts.registerStudent,{});
+  expect(await student.mutation(api.accounts.registerStudent,{})).toBe(id);
+  expect((await student.query(api.accounts.me,{})).role).toBe('student');
+  await expect(student.query(api.accounts.list,{})).rejects.toThrow();
+  await expect(t.withIdentity(who('bad@example.com')).mutation(api.accounts.registerStudent,{})).rejects.toThrow();
+  await admin.mutation(api.accounts.setActive,{accountId:id,active:false});
+  await expect(student.mutation(api.accounts.registerStudent,{})).rejects.toThrow();
+  const other=t.withIdentity({...who('new@lspu.edu.ph'),subject:'other-uid'});
+  await expect(other.mutation(api.accounts.registerStudent,{})).rejects.toThrow();
+  await admin.mutation(api.accounts.provision,{email:'teacher@lspu.edu.ph',name:'Teacher',role:'instructor'});
+  await expect(t.withIdentity(who('teacher@lspu.edu.ph')).mutation(api.accounts.registerStudent,{})).rejects.toThrow();
+ });
+ it('allows only the two specified Gmail addresses to register as admins',async()=>{
+  const t=createTest();
+  for(const email of ['johnalexalcazar@gmail.com','alcazarjohnalex@gmail.com']){
+   const account=t.withIdentity(who(email));
+   expect((await account.query(api.accounts.status,{})).canRegister).toBe(true);
+   const id=await account.mutation(api.accounts.registerStudent,{});
+   expect((await account.query(api.accounts.me,{})).role).toBe('admin');
+   expect(await account.query(api.accounts.list,{})).toBeDefined();
+   await expect(t.withIdentity({...who(email),subject:'different-uid'}).mutation(api.accounts.registerStudent,{})).rejects.toThrow();
+   await expect(account.mutation(api.accounts.setActive,{accountId:id,active:false})).rejects.toThrow();
+  }
+  for(const email of ['someone@gmail.com','johnalexalcazar@gmail.com.example.com']){
+   const other=t.withIdentity(who(email));
+   expect((await other.query(api.accounts.status,{})).state).toBe('invalid');
+   await expect(other.mutation(api.accounts.registerStudent,{})).rejects.toThrow();
+  }
+ });
+ it('lets only administrators switch student and instructor roles',async()=>{
+  const t=createTest(),admin=t.withIdentity(who('johnalexalcazar@gmail.com'));
+  const adminId=await admin.mutation(api.accounts.registerStudent,{});
+  const student=t.withIdentity(who('role-test@lspu.edu.ph'));
+  const id=await student.mutation(api.accounts.registerStudent,{});
+  await expect(student.mutation(api.accounts.setTeachingRole,{accountId:id,role:'instructor'})).rejects.toThrow();
+  await admin.mutation(api.accounts.setTeachingRole,{accountId:id,role:'instructor'});
+  expect((await student.query(api.accounts.me,{})).role).toBe('instructor');
+  await admin.mutation(api.accounts.setTeachingRole,{accountId:id,role:'student'});
+  expect((await student.query(api.accounts.me,{})).role).toBe('student');
+  await expect(admin.mutation(api.accounts.setTeachingRole,{accountId:adminId,role:'student'})).rejects.toThrow();
+ });
  it('accepts university emails without a verification flag and rejects other domains',async()=>{
   const t=createTest();const good=t.withIdentity(who('0324-2225@lspu.edu.ph'));expect((await good.query(api.accounts.status,{})).state).toBe('unapproved');
   const unverified=await t.withIdentity(who('0324-2225@lspu.edu.ph',false)).query(api.accounts.status,{});expect(unverified.state).toBe('unapproved');
