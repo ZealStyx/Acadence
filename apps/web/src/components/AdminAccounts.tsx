@@ -1,0 +1,12 @@
+'use client';
+import {useState} from 'react';
+import {useMutation,useQuery} from 'convex/react';
+import {anyApi} from 'convex/server';
+type Account={_id:string;name:string;email:string;role:'student'|'instructor'|'admin';active:boolean};
+export default function AdminAccounts(){
+ const accounts=useQuery(anyApi.accounts.list,{}) as Account[]|undefined;const setRole=useMutation(anyApi.accounts.setTeachingRole),setActive=useMutation(anyApi.accounts.setActive);
+ const [search,setSearch]=useState(''),[role,setFilter]=useState('All'),[busy,setBusy]=useState(''),[message,setMessage]=useState('');
+ async function update(a:Account,action:'role'|'active'){const next=a.role==='student'?'instructor':'student';if(!window.confirm(action==='role'?`Make ${a.name} ${next}?`:`${a.active?'Disable':'Enable'} ${a.name}?`))return;setBusy(a._id);setMessage('');try{if(action==='role')await setRole({accountId:a._id,role:next});else await setActive({accountId:a._id,active:!a.active});setMessage('Account updated.')}catch{setMessage('Could not update the account.')}finally{setBusy('')}}
+ const visible=accounts?.filter(a=>(role==='All'||a.role===role)&&`${a.name} ${a.email}`.toLowerCase().includes(search.toLowerCase()));
+ return <><header className="staff-header"><h1>Accounts</h1><p>Registered Pulso accounts. Students get access automatically; instructors are managed here.</p></header><div className="dash-filters"><label className="field">Search<input value={search} onChange={e=>setSearch(e.target.value)} placeholder="Name or email"/></label><label className="field">Role<select value={role} onChange={e=>setFilter(e.target.value)}><option>All</option><option value="student">Students</option><option value="instructor">Instructors</option><option value="admin">Admins</option></select></label></div>{message&&<p role="status">{message}</p>}<section className="card staff-panel">{!accounts?<p>Loading accounts…</p>:!visible?.length?<p>No matching accounts.</p>:visible.map(a=><div className="group-row" key={a._id}><span><strong>{a.name}</strong><small>{a.email} · {a.role} · {a.active?'Active':'Disabled'}</small></span><span>{a.role!=='admin'&&<button className="secondary" disabled={!!busy} onClick={()=>void update(a,'role')}>Make {a.role==='student'?'instructor':'student'}</button>}{' '}<button className="secondary" disabled={!!busy} onClick={()=>void update(a,'active')}>{a.active?'Disable':'Enable'}</button></span></div>)}</section></>;
+}

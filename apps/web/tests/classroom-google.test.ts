@@ -25,6 +25,11 @@ describe('Classroom student read helpers',()=>{
 });
 
 describe('teacher Classroom coursework',()=>{
+ it('fetches multiple teacher course pages and includes active, provisioned and archived classes',async()=>{
+  const mock=vi.fn<typeof fetch>().mockResolvedValueOnce(json({courses:[{id:'1',name:'First',courseState:'ACTIVE',section:'A'}],nextPageToken:'next'})).mockResolvedValueOnce(json({courses:[{id:'2',name:'Second',courseState:'ARCHIVED'}]}));
+  expect(await listTeacherCourses('token',mock)).toEqual([{googleCourseId:'1',name:'First',courseState:'ACTIVE',section:'A'},{googleCourseId:'2',name:'Second',courseState:'ARCHIVED'}]);
+  const url=new URL(String(mock.mock.calls[0][0]));expect(url.searchParams.getAll('courseStates')).toEqual(['ACTIVE','PROVISIONED','ARCHIVED']);expect(String(mock.mock.calls[1][0])).toContain('pageToken=next');
+ });
  it('requests teacher courses and preserves published work type and description',async()=>{
   const courses=vi.fn<typeof fetch>().mockResolvedValue(json({courses:[{id:'c',name:'Class'}]}));
   expect(await listTeacherCourses('token',courses)).toEqual([{googleCourseId:'c',name:'Class'}]);expect(String(courses.mock.calls[0][0])).toContain('teacherId=me');

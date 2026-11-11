@@ -13,7 +13,7 @@ async function request(path:string){
 }
 export default function Classroom(){
  const [courses,setCourses]=useState<CourseResult[]|null>(null),[loading,setLoading]=useState(true),[busy,setBusy]=useState(false),[error,setError]=useState('');
- const load=useCallback(async()=>{const result=await request('load');setCourses(result.connected?result.courses:null);},[]);
+ const load=useCallback(async()=>{const result=await request('load');setCourses(result.connected?result.courses:null);if(result.connected&&!result.synced)setError('Classes loaded, but shared Classroom sync is unavailable. Contact the administrator.');},[]);
  useEffect(()=>{let live=true;void load().catch(()=>{if(live)setError('Could not load your saved Classroom connection. Check the server configuration or connect again.');}).finally(()=>{if(live)setLoading(false)});return()=>{live=false}},[load]);
  useEffect(()=>{const url=new URL(window.location.href);const result=url.searchParams.get('classroom');if(result){url.searchParams.delete('classroom');window.history.replaceState(null,'',url.toString());if(result==='error')setError('Google Classroom connection was not completed. Use the same Google account as your Pulso sign-in and try again.');}},[]);
  async function connect(){setBusy(true);setError('');try{const result=await request('start');window.location.assign(result.url);}catch(e){setError(e instanceof Error?e.message:'Could not connect.');setBusy(false);}}
