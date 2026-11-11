@@ -10,19 +10,21 @@ const {api,createTest}=defineTestApp({schema}).defineModules({accounts,sections,
 const who=(email:string,verified=true)=>({subject:email,tokenIdentifier:`https://securetoken.google.com/test-project|${email}`,email,emailVerified:verified,name:email});
 beforeEach(()=>{process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL='0000-0000@lspu.edu.ph'});
 describe('Convex authorization and shared deadlines',()=>{
- it('requires verified, correctly formatted, provisioned accounts and bootstraps only once',async()=>{
-  const t=createTest(),root=t.withIdentity(who('0000-0000@lspu.edu.ph'));
+ it('requires a university domain and approved accounts and bootstraps only once',async()=>{
+  const t=createTest(),root=t.withIdentity(who('0000-0000@lspu.edu.ph',false));
   await expect(t.query(api.accounts.me,{})).rejects.toThrow();
   await expect(t.withIdentity(who('someone@lspu.edu.ph')).query(api.accounts.me,{})).rejects.toThrow();
-  await expect(t.withIdentity(who('0000-0000@lspu.edu.ph',false)).mutation(api.accounts.bootstrapAdmin,{})).rejects.toThrow();
   expect((await root.query(api.accounts.status,{})).canBootstrap).toBe(true);
   await root.mutation(api.accounts.bootstrapAdmin,{});expect((await root.query(api.accounts.status,{})).state).toBe('active');await expect(root.mutation(api.accounts.bootstrapAdmin,{})).rejects.toThrow();
   await expect(t.withIdentity(who('1111-1111@lspu.edu.ph')).query(api.accounts.me,{})).rejects.toThrow();
-  await expect(root.mutation(api.accounts.provision,{email:'test@lspu.edu.ph',name:'Invalid',role:'student'})).rejects.toThrow();
+  await root.mutation(api.accounts.provision,{email:'test@lspu.edu.ph',name:'Student',role:'student'});
+  await expect(root.mutation(api.accounts.provision,{email:'test@lspu.edu.ph.example.com',name:'Invalid',role:'student'})).rejects.toThrow();
  });
- it('recognizes valid university email formats and distinguishes missing or unverified email',async()=>{
+ it('accepts university emails without a verification flag and rejects other domains',async()=>{
   const t=createTest();const good=t.withIdentity(who('0324-2225@lspu.edu.ph'));expect((await good.query(api.accounts.status,{})).state).toBe('unapproved');
-  const unverified=await t.withIdentity(who('0324-2225@lspu.edu.ph',false)).query(api.accounts.status,{});expect(unverified.state).toBe('invalid');if(unverified.state==='invalid')expect(unverified.reason).toBe('unverified_email');
+  const unverified=await t.withIdentity(who('0324-2225@lspu.edu.ph',false)).query(api.accounts.status,{});expect(unverified.state).toBe('unapproved');
+  const missingVerification=await t.withIdentity({subject:'another',tokenIdentifier:'https://securetoken.google.com/test-project|another',email:'name@lspu.edu.ph'}).query(api.accounts.status,{});expect(missingVerification.state).toBe('unapproved');
+  for(const email of ['@lspu.edu.ph','person@lspu.edu.ph.example.com','person@sub.lspu.edu.ph','person@@lspu.edu.ph'])expect((await t.withIdentity(who(email)).query(api.accounts.status,{})).state).toBe('invalid');
   const bad=await t.withIdentity(who('0324-2225@example.com')).query(api.accounts.status,{});expect(bad.state).toBe('invalid');if(bad.state==='invalid')expect(bad.reason).toBe('invalid_format');
   const missing=await t.withIdentity({subject:'firebase-uid',tokenIdentifier:'https://securetoken.google.com/test-project|firebase-uid'}).query(api.accounts.status,{});expect(missing.state).toBe('invalid');if(missing.state==='invalid')expect(missing.reason).toBe('missing_email');
  });
@@ -84,10 +86,11 @@ describe('Convex authorization and shared deadlines',()=>{
  it('links a preapproved email once and authorizes by Firebase UID rather than changing email or browser claims',async()=>{
   const t=createTest(),root=t.withIdentity(who('0000-0000@lspu.edu.ph'));await root.mutation(api.accounts.bootstrapAdmin,{});
   const record=await root.mutation(api.accounts.provision,{email:'3333-3333@lspu.edu.ph',name:'Student',role:'student'});
-  const user=t.withIdentity({...who('3333-3333@lspu.edu.ph'),subject:'firebase-uid-a'});
+  const user=t.withIdentity({...who('3333-3333@lspu.edu.ph',false),subject:'firebase-uid-a'});
   await expect(user.query(api.accounts.me,{})).rejects.toThrow();expect((await user.query(api.accounts.status,{})).canLink).toBe(true);
   expect(await user.mutation(api.accounts.linkApprovedAccount,{})).toBe(record);expect(await user.mutation(api.accounts.linkApprovedAccount,{})).toBe(record);
   const changedEmail=t.withIdentity({...who('9999-9999@lspu.edu.ph'),subject:'firebase-uid-a'});expect((await changedEmail.query(api.accounts.me,{}))._id).toBe(record);
+  const outside=t.withIdentity({...who('student@example.com'),subject:'firebase-uid-a'});expect((await outside.query(api.accounts.status,{})).state).toBe('invalid');await expect(outside.query(api.accounts.me,{})).rejects.toThrow();
   const impersonator=t.withIdentity({...who('3333-3333@lspu.edu.ph'),subject:'firebase-uid-b',role:'admin'});await expect(impersonator.mutation(api.accounts.linkApprovedAccount,{})).rejects.toThrow();await expect(impersonator.query(api.accounts.me,{})).rejects.toThrow();
   await expect(user.query(api.accounts.list,{})).rejects.toThrow();await expect(t.withIdentity({...who('4444-4444@lspu.edu.ph',false),subject:'new'}).mutation(api.accounts.linkApprovedAccount,{})).rejects.toThrow();
  });

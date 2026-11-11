@@ -3,7 +3,7 @@ import {v} from 'convex/values';
 import {emailPattern,identityEmail,normalizeEmail,requireAccount,firebaseIdentity} from './access';
 const role=v.union(v.literal('student'),v.literal('instructor'),v.literal('admin'));
 export const me=queryGeneric({args:{},handler:async(ctx)=>requireAccount(ctx)});
-// First administrator must both sign in as the configured verified Google account and invoke this once.
+// First administrator must both sign in as the configured university account and invoke this once.
 export const bootstrapAdmin=mutationGeneric({args:{},handler:async(ctx)=>{
  const identity=await identityEmail(ctx); const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');
  if(!emailPattern.test(configured)||identity.email!==configured) throw new Error('Bootstrap is not authorized.');
@@ -25,7 +25,7 @@ export const setActive=mutationGeneric({args:{accountId:v.id('accounts'),active:
  const admin=await requireAccount(ctx,'admin');if(admin._id===accountId&&!active)throw new Error('You cannot disable your own account.');
  const account=await ctx.db.get(accountId);if(!account)throw new Error('Account not found.');await ctx.db.patch(accountId,{active});
 }});
-// Link only an existing, active, administrator-approved account with a verified matching email.
+// Link only an existing, active, administrator-approved account with a matching university email.
 // Once linked, ownership is always resolved by UID, never by email.
 export const linkApprovedAccount=mutationGeneric({args:{},handler:async(ctx)=>{
  const identity=await identityEmail(ctx);const linked=await ctx.db.query('accounts').withIndex('by_firebase_uid',q=>q.eq('firebaseUid',identity.uid)).unique();if(linked){if(!linked.active)throw new Error('Account is disabled.');return linked._id;}
@@ -34,8 +34,8 @@ export const linkApprovedAccount=mutationGeneric({args:{},handler:async(ctx)=>{
 }});
 export const status=queryGeneric({args:{},handler:async(ctx)=>{
  const identity=await ctx.auth.getUserIdentity();if(!identity||!identity.subject)return {state:'invalid' as const,reason:'missing_identity' as const};
+ if(!identity.email)return {state:'invalid' as const,reason:'missing_email' as const};const email=normalizeEmail(identity.email);if(!emailPattern.test(email))return {state:'invalid' as const,reason:'invalid_format' as const,email};
  const account=await ctx.db.query('accounts').withIndex('by_firebase_uid',q=>q.eq('firebaseUid',identity.subject)).unique();if(account)return account.active?{state:'active' as const,account}:{state:'unapproved' as const,canBootstrap:false,canLink:false};
- if(!identity.email)return {state:'invalid' as const,reason:'missing_email' as const};const email=normalizeEmail(identity.email);if(!emailPattern.test(email))return {state:'invalid' as const,reason:'invalid_format' as const,email};if(identity.emailVerified!==true)return {state:'invalid' as const,reason:'unverified_email' as const,email};
  const approved=await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',email)).unique();const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');const canBootstrap=!approved&&configured===email&&!(await ctx.db.query('bootstrap').first());
  return {state:'unapproved' as const,canBootstrap,canLink:!!approved&&approved.active&&!approved.firebaseUid};
 }});
