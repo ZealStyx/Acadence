@@ -151,3 +151,16 @@ html, .app .dash-table-wrap { scrollbar-gutter: auto; }
 @keyframes workspace-appear { from { opacity: .82; } to { opacity: 1; } }
 .app .staff-header, .classroom-course[open] .classroom-coursework { animation: workspace-appear .18s ease-out; }
 .app.reduce-motion *, .app.reduce-motion *::before, .app.reduce-motion *::after { animation-duration: .01ms !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+
+/* A compact, readable deadline editor on desktop and small screens. */
+.deadline-modal { width: min(680px, 100%); max-height: min(90dvh, 900px); overflow-y: auto; padding: clamp(20px, 3vw, 32px); }
+.deadline-modal .staff-row { align-items: flex-start; gap: 16px; }
+.deadline-modal .staff-row h2 { margin: 0; }
+.deadline-context { margin: 6px 0 20px; color: var(--color-muted); overflow-wrap: anywhere; }
+.deadline-modal form { display: grid; gap: 16px; }
+.deadline-modal .field { margin: 0; min-width: 0; }
+.deadline-modal .form-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 16px; }
+.deadline-modal .staff-callout, .deadline-modal .footnote { margin: 0; }
+.deadline-modal .deadline-preview { max-height: 220px; overflow: auto; }
+.deadline-modal .profile-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin: 0; }
+@media (max-width: 560px) { .deadline-modal .form-row { grid-template-columns: 1fr; } .deadline-modal .profile-actions > button { flex: 1; } }

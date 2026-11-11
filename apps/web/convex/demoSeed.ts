@@ -28,6 +28,25 @@ export const seed=mutationGeneric({args:{instructorEmail:v.string(),studentEmail
   const demoCourses=await ctx.db.query('courses').withIndex('by_demo_batch',q=>q.eq('demoBatchKey',BATCH)).collect();
   for(const j of [2,3]){const target=demoCourses.filter(c=>c.demoEntityKey===`course:2:${j}`);if(target.length!==1)throw new Error('Demo course is missing or duplicated; no assignments were updated.');const course=target[0];if(course.instructorId===coInstructor._id)continue;if(course.instructorId!==teacher._id)throw new Error('Demo course owner changed; no assignments were updated.');await ctx.db.patch(course._id,{instructorId:coInstructor._id});updated++;}
   for(const index of additionalShowcaseSections){const target=(await ctx.db.query('courses').withIndex('by_demo_batch',q=>q.eq('demoBatchKey',BATCH)).collect()).filter(c=>c.demoEntityKey===`course:${index}:0`);if(target.length!==1)throw new Error('Demo course is missing or duplicated; resolve the batch before updating.');const course=target[0];if(course.instructorId===teacher._id)continue;const owner=await ctx.db.get(course.instructorId);if(!owner||owner.demoBatchKey!==BATCH||owner.demoEntityKey!==`instructor:${index}`)throw new Error('Demo course owner changed; no assignments were updated.');await ctx.db.patch(course._id,{instructorId:teacher._id});updated++;}
+  // Extend only this marked batch. Existing offerings and deadlines are never overwritten.
+  const batchSections=await ctx.db.query('academicSections').withIndex('by_demo_batch',q=>q.eq('demoBatchKey',BATCH)).collect();
+  const batchAccounts=await ctx.db.query('accounts').withIndex('by_demo_batch',q=>q.eq('demoBatchKey',BATCH)).collect();
+  const batchAssessments=await ctx.db.query('assessments').withIndex('by_demo_batch',q=>q.eq('demoBatchKey',BATCH)).collect();
+  for(let index=0;index<sections.length;index++){
+   const sectionMatches=batchSections.filter(s=>s.demoEntityKey===`section:${index}`), owners=batchAccounts.filter(a=>a.demoEntityKey===`instructor:${index}`);
+   if(sectionMatches.length!==1||owners.length!==1||owners[0].role!=='instructor'||!owners[0].active||owners[0].firebaseUid)throw new Error('Demo section or instructor is unavailable; no data was updated.');
+   const s=sections[index];
+   for(let j=4;j<s.subjects.length;j++){
+    const key=`course:${index}:${j}`, matches=demoCourses.filter(c=>c.demoEntityKey===key);
+    if(matches.length>1)throw new Error('Duplicate demo course; no data was updated.');
+    let course=matches[0];
+    if(course&&(course.academicSectionId!==sectionMatches[0]._id||course.subject!==s.subjects[j]))throw new Error('Demo course changed; no data was updated.');
+    if(!course){const id=await ctx.db.insert('courses',{...mark(key),subject:s.subjects[j],name:`Illustrative ${s.subjects[j]} (pitch demo)`,program:s.program,yearLevel:s.year,instructorId:owners[0]._id,academicSectionId:sectionMatches[0]._id});course=(await ctx.db.get(id))!;updated++;}
+    const assessmentKey=`extra-assessment:${index}:${j}`, existingAssessments=batchAssessments.filter(a=>a.demoEntityKey===assessmentKey);
+    if(existingAssessments.length>1||existingAssessments.some(a=>a.courseId!==course._id))throw new Error('Demo assessment changed; no data was updated.');
+    if(!existingAssessments.length){await ctx.db.insert('assessments',{...mark(assessmentKey),courseId:course._id,title:'Course activity',type:'activity',dueDate:addDays(existing.referenceMonday,((j+index)%8)*7+(j%5)),weightPercent:5,major:false,createdBy:course.instructorId,updatedAt:Date.now()});updated++;}
+   }
+  }
   return {created:false,updated,referenceMonday:existing.referenceMonday,...counts};}
  const monday=args.referenceMonday||weekStart(new Date().toISOString().slice(0,10));if(weekStart(monday)!==monday)throw new Error('Reference date must be a Monday.');
  // Never adopt or overwrite a real record on a natural-key collision.
@@ -43,6 +62,7 @@ export const seed=mutationGeneric({args:{instructorEmail:v.string(),studentEmail
    await ctx.db.insert('sectionMembers',{...mark(`member:${index}:${j}`),studentId:id,academicSectionId:sectionId});
   }
   const courseIds:Id<'courses'>[]=[];const courseInstructors:Id<'accounts'>[]=[];for(let j=0;j<s.subjects.length;j++){const owner=(index===2&&j<2)||(additionalShowcaseSections.some(i=>i===index)&&j===0)?teacher._id:instructorId;courseInstructors.push(owner);courseIds.push(await ctx.db.insert('courses',{...mark(`course:${index}:${j}`),subject:s.subjects[j],name:`Illustrative ${s.subjects[j]} (pitch demo)`,program:s.program,yearLevel:s.year,instructorId:owner,academicSectionId:sectionId}));}
+  for(let j=4;j<s.subjects.length;j++)await ctx.db.insert('assessments',{...mark(`extra-assessment:${index}:${j}`),courseId:courseIds[j],title:'Course activity',type:'activity',dueDate:addDays(monday,((j+index)%8)*7+(j%5)),weightPercent:5,major:false,createdBy:courseInstructors[j],updatedAt:Date.now()});
   let n=0;for(const item of assessmentsFor(index))await ctx.db.insert('assessments',{...mark(`assessment:${index}:${n++}`),courseId:courseIds[item.course],title:item.title,type:item.type,dueDate:addDays(monday,item.week*7+item.day),weightPercent:item.weightPercent,major:item.major,createdBy:courseInstructors[item.course],updatedAt:Date.now()});
  }
  return {created:true,referenceMonday:monday,...counts};
