@@ -5,8 +5,8 @@ import {anyApi} from 'convex/server';
 
 type Work={_id:string;title:string;subject?:string;section?:string;type:'quiz'|'activity'|'exam'|'performance';dueDate:string;weightPercent:number;major:boolean};
 type Week={start:string;load:number;band:string};
-type Row={course:{_id:string;subject:string;name:string};section:{code:string;term:string;program:string;yearLevel:number}|null;studentCount:number;offerings:string[];entries:Work[];own:Work[];weeks:Week[]};
-type Heat={id:string;code:string;program:string;yearLevel:number;term:string;studentCount:number;offeringCount:number;weeks:{start:string;averageLoad:number;band:string}[]};
+type Row={course:{_id:string;subject:string;name:string};section:{code:string;term:string;program:string;yearLevel:number;demoBatchKey?:string}|null;studentCount:number;offerings:string[];entries:Work[];own:Work[];weeks:Week[]};
+type Heat={demoBatchKey?:string;id:string;code:string;program:string;yearLevel:number;term:string;studentCount:number;offeringCount:number;weeks:{start:string;averageLoad:number;band:string}[]};
 const types=['quiz','exam','activity'] as const;
 const format=(s:string)=>new Date(s+'T12:00:00Z').toLocaleDateString('en-US',{month:'short',day:'numeric',timeZone:'UTC'});
 function monday(){const d=new Date();const date=new Date(Date.UTC(d.getFullYear(),d.getMonth(),d.getDate()));date.setUTCDate(date.getUTCDate()-(date.getUTCDay()+6)%7);return date.toISOString().slice(0,10)}
@@ -19,10 +19,10 @@ function Pager({start,setStart,step=56}:{start:string;setStart:(s:string)=>void;
 function Title({title,sub}:{title:string;sub:string}){return <header className="staff-header"><h1>{title}</h1><p>{sub}</p></header>}
 function Cell({band,load,selected,onClick}:{band:string;load:number;selected?:boolean;onClick?:()=>void}){return <button type="button" className={'dash-cell '+band.toLowerCase()+(selected?' selected':'')} aria-label={`${band}, load ${load.toFixed(1)}`} aria-pressed={selected} onClick={onClick}>{symbol(band)}<span className="sr-only"> {band}</span></button>}
 
-export function InstructorDashboard({page,name,onSections}:{page:string;name:string;onSections:()=>void}){
+export function InstructorDashboard({page,name,onSections,demoOnly=false}:{page:string;name:string;onSections:()=>void;demoOnly?:boolean}){
  const [start,setStart]=useState(monday),[id,setId]=useState(''),[week,setWeek]=useState('');
  const starts=useMemo(()=>Array.from({length:6},(_,i)=>shift(start,i*7)),[start]);
- const rows=useQuery(anyApi.instructor.overview,{weekStarts:starts}) as Row[]|undefined;
+ const result=useQuery(anyApi.instructor.overview,{weekStarts:starts}) as Row[]|undefined;const rows=demoOnly?result?.filter(r=>r.section?.demoBatchKey==='acadence-pitch-demo-v1'):result;
  const [subject,setSubject]=useState('All'),[section,setSection]=useState('All');
  const filtered=(rows||[]).filter(r=>(subject==='All'||r.course.subject===subject)&&(section==='All'||r.section?.code===section));
  const selected=filtered.find(r=>r.course._id===id)||filtered[0],selectedWeek=starts.includes(week)?week:starts[0],w=selected?.weeks.find(x=>x.start===selectedWeek);
@@ -34,10 +34,10 @@ export function InstructorDashboard({page,name,onSections}:{page:string;name:str
  return <><Title title="Section crunch weeks" sub="Spot scheduling conflicts across the classes you handle."/><div className="dash-filters"><label className="field">Subject<select value={subject} onChange={e=>setSubject(e.target.value)}><option>All</option>{Array.from(new Set(rows.map(r=>r.course.subject))).map(s=><option key={s}>{s}</option>)}</select></label><label className="field">Section<select value={section} onChange={e=>setSection(e.target.value)}><option>All</option>{Array.from(new Set(rows.flatMap(r=>r.section?[r.section.code]:[]))).map(s=><option key={s}>{s}</option>)}</select></label></div><Pager start={start} setStart={setStart} step={42}/><div className="dash-columns"><section className="card dash-panel"><h2>All assigned sections</h2><p>Select a section and week. Only recorded workloads are shown.</p><div className="dash-table-wrap" tabIndex={0} role="region" aria-label="Scrollable assigned section workload"><table className="dash-table"><thead><tr><th>Section</th>{starts.map(s=><th key={s}>{format(s)}</th>)}</tr></thead><tbody>{filtered.map(r=><tr key={r.course._id}><th>{r.course.subject} · {r.section?.code||'Unmapped'}<small>{r.section?`${r.studentCount} students`:'No section mapped'}</small></th>{starts.map(s=>{const v=r.weeks.find(x=>x.start===s);return <td key={s}>{v?<Cell band={v.band} load={v.load} selected={selected?.course._id===r.course._id&&selectedWeek===s} onClick={()=>{setId(r.course._id);setWeek(s)}}/>:'—'}</td>})}</tr>)}</tbody></table></div><div className="dash-legend"><Badge band="Light"/><Badge band="Heavy"/><Badge band="Critical"/></div></section><aside className="stack"><section className="card dash-panel"><h2>{selected?`${selected.course.subject} · ${selected.section?.code||'Unmapped'}`:'No assigned sections'}</h2><p>Week of {format(selectedWeek)}{selected?.section?` · ${selected.studentCount} students`:''}</p>{w&&<Badge band={w.band}/>}<h3>Contributing deadlines</h3><div className="stack dash-block">{shared.length?shared.map(d=><WorkCard item={d} key={d._id}/>):<p>No recorded deadlines for this week.</p>}</div></section><section className="card dash-panel dash-tinted"><h2>Check before adding a deadline</h2><p>Only registered offerings and recorded deadlines are included. Suggestions are advisory.</p><button className="primary" onClick={onSections}>Review in Sections</button></section></aside></div></>;
 }
 
-export function AdminDashboard({page,onNavigate}:{page:string;onNavigate:(page:string)=>void}){
+export function AdminDashboard({page,onNavigate,demoOnly=false}:{page:string;onNavigate:(page:string)=>void;demoOnly?:boolean}){
  const [start,setStart]=useState(monday),[type,setType]=useState('All'),[program,setProgram]=useState('All'),[term,setTerm]=useState('All'),[chosen,setChosen]=useState('');
  const starts=useMemo(()=>Array.from({length:8},(_,i)=>shift(start,i*7)),[start]);
- const rows=useQuery(anyApi.admin.heatmap,{weekStarts:starts,...(page!=='Crunch Weeks'||type==='All'?{}:{type})}) as Heat[]|undefined;
+ const result=useQuery(anyApi.admin.heatmap,{weekStarts:starts,...(page!=='Crunch Weeks'||type==='All'?{}:{type})}) as Heat[]|undefined;const rows=demoOnly?result?.filter(r=>r.demoBatchKey==='acadence-pitch-demo-v1'):result;
  const filtered=(rows||[]).filter(r=>(program==='All'||r.program===program)&&(term==='All'||r.term===term));
  const programs=Array.from(new Set(filtered.map(r=>r.program)));
  const selected=filtered.find(r=>r.id===chosen)||filtered[0];
