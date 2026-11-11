@@ -21,3 +21,54 @@
 @media(max-width:767px){.sidebar{position:fixed;bottom:0;top:auto;left:0;right:0;width:100%;height:auto;padding:5px 6px calc(5px + env(safe-area-inset-bottom));border:0;background:#101427;z-index:10}.sidebar .brand,.sidebar-context,.menu-label,.sidebar-bottom{display:none}.sidebar nav{display:grid;grid-template-columns:repeat(var(--nav-count),minmax(0,1fr));gap:4px}.nav-button{height:55px;padding:5px 2px;display:flex;flex-direction:column;justify-content:center;gap:3px;font-size:10px;text-align:center;border-radius:9px}.nav-button.active{box-shadow:none}.nav-icon{width:19px;height:19px}.nav-indicator{display:none}.main{padding:0 20px calc(100px + env(safe-area-inset-bottom))}.workspace-topbar{height:70px;margin-bottom:30px}.breadcrumb{font-size:9px}.topbar-profile div{display:none}.mobile-signout{display:inline-block}.staff-header{margin-bottom:22px}.workload-overview{padding:22px}.student-aside{grid-template-columns:1fr 1fr}.modal-backdrop{padding:14px}.staff-modal{max-height:calc(100dvh - 28px)}}
 @media(max-width:520px){.overview-top,.overview-bottom{gap:14px}.overview-top h2{font-size:16px}.overview-stat{min-width:105px;padding-left:15px}.overview-stat strong{font-size:22px}.load-value{font-size:35px}.student-aside{grid-template-columns:1fr}.study-note{grid-column:auto}.student-columns .section-heading{align-items:end}.subject-filter select{min-width:120px}.login-content h2{font-size:30px}.staff-panel{padding:20px}.deadline{gap:10px}.breadcrumb{gap:6px}.topbar-actions{gap:7px}}
 @media(prefers-reduced-motion:reduce){*,*::before,*::after{animation-duration:.01ms!important;transition-duration:.01ms!important;scroll-behavior:auto!important}}
+
+/* Responsive layout resilience: allow content to shrink, wrap and scroll locally. */
+html,body{min-width:0;max-width:100%}
+img,svg{max-width:100%}
+.main,.content,.staff-content,.student-columns>*,.staff-columns>*,.staff-sections>*,.stack,.card,.auth-card{min-width:0}
+.card,.notice,.auth-card,.staff-header,.sidebar-user,.topbar-profile{overflow-wrap:anywhere}
+.deadline>div:first-child,.group-row>span:first-child,.staff-row>div{min-width:0;overflow-wrap:anywhere}
+.staff-matrix-wrap,.table-wrap,.week-strip{max-width:100%;overscroll-behavior-x:contain;-webkit-overflow-scrolling:touch}
+.week-strip:focus-visible,.staff-matrix-wrap:focus-visible{outline:3px solid #818cf8;outline-offset:2px}
+.sidebar{overflow-y:auto;overscroll-behavior:contain}
+.modal{max-height:calc(100dvh - 40px);overscroll-behavior:contain}
+@media (max-width: 920px){
+ .login-page{grid-template-columns:1fr}
+ .login-story{display:none}
+ .login-side{min-height:100vh;min-height:100dvh;padding:25px clamp(16px,5vw,36px)}
+ .mobile-brand{display:flex}
+ .login-content{padding:clamp(32px,7vh,55px) 0}
+ .login-footer{margin-top:auto}
+}
+@media (max-width: 850px){
+ .staff-columns,.staff-sections{grid-template-columns:minmax(0,1fr)}
+ .student-columns{grid-template-columns:minmax(0,1fr)}
+}
+@media (max-width: 767px){
+ .sidebar{overflow:visible}
+ .main{padding-left:clamp(16px,5vw,24px);padding-right:clamp(16px,5vw,24px)}
+ .workspace-topbar{gap:8px}
+ .topbar-actions{min-width:0;gap:8px}
+ .mobile-signout{min-height:44px}
+ .staff-row{flex-wrap:wrap}
+ .staff-row>div{max-width:100%}
+ .staff-matrix-wrap{width:100%}
+ .modal-backdrop{padding:12px}
+ .modal,.staff-modal{width:100%;max-height:calc(100dvh - 24px);padding:20px}
+ input:not([type=checkbox]):not([type=file]),select{font-size:16px}
+}
+@media (max-width: 420px){
+ .overview-top,.overview-bottom{flex-wrap:wrap}
+ .overview-stat{border-left:0;padding-left:0}
+ .student-columns .section-heading{align-items:stretch;flex-wrap:wrap}
+ .subject-filter{flex:1 1 130px}
+ .subject-filter select{width:100%;min-width:0}
+ .deadline{align-items:flex-start;flex-wrap:wrap}
+ .deadline>div:first-child{flex:1 1 150px}
+ .tags{flex-direction:row;flex-wrap:wrap;align-items:center}
+ .group-row{flex-wrap:wrap}
+ .staff-modal .form-row{grid-template-columns:minmax(0,1fr)}
+ .auth-wait{padding:16px}
+ .auth-card{width:100%;padding:20px}
+ .breadcrumb{gap:4px}
+}
