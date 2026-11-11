@@ -33,9 +33,9 @@ export const linkApprovedAccount=mutationGeneric({args:{},handler:async(ctx)=>{
  await ctx.db.patch(account._id,{firebaseUid:identity.uid});return account._id;
 }});
 export const status=queryGeneric({args:{},handler:async(ctx)=>{
- const identity=await ctx.auth.getUserIdentity();if(!identity||!identity.subject)return {state:'invalid' as const};
+ const identity=await ctx.auth.getUserIdentity();if(!identity||!identity.subject)return {state:'invalid' as const,reason:'missing_identity' as const};
  const account=await ctx.db.query('accounts').withIndex('by_firebase_uid',q=>q.eq('firebaseUid',identity.subject)).unique();if(account)return account.active?{state:'active' as const,account}:{state:'unapproved' as const,canBootstrap:false,canLink:false};
- if(identity.emailVerified!==true||!identity.email)return {state:'invalid' as const};const email=normalizeEmail(identity.email);if(!emailPattern.test(email))return {state:'invalid' as const};
+ if(!identity.email)return {state:'invalid' as const,reason:'missing_email' as const};const email=normalizeEmail(identity.email);if(!emailPattern.test(email))return {state:'invalid' as const,reason:'invalid_format' as const,email};if(identity.emailVerified!==true)return {state:'invalid' as const,reason:'unverified_email' as const,email};
  const approved=await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',email)).unique();const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');const canBootstrap=!approved&&configured===email&&!(await ctx.db.query('bootstrap').first());
  return {state:'unapproved' as const,canBootstrap,canLink:!!approved&&approved.active&&!approved.firebaseUid};
 }});

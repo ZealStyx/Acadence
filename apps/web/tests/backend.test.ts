@@ -20,6 +20,12 @@ describe('Convex authorization and shared deadlines',()=>{
   await expect(t.withIdentity(who('1111-1111@lspu.edu.ph')).query(api.accounts.me,{})).rejects.toThrow();
   await expect(root.mutation(api.accounts.provision,{email:'test@lspu.edu.ph',name:'Invalid',role:'student'})).rejects.toThrow();
  });
+ it('recognizes valid university email formats and distinguishes missing or unverified email',async()=>{
+  const t=createTest();const good=t.withIdentity(who('0324-2225@lspu.edu.ph'));expect((await good.query(api.accounts.status,{})).state).toBe('unapproved');
+  const unverified=await t.withIdentity(who('0324-2225@lspu.edu.ph',false)).query(api.accounts.status,{});expect(unverified.state).toBe('invalid');if(unverified.state==='invalid')expect(unverified.reason).toBe('unverified_email');
+  const bad=await t.withIdentity(who('0324-2225@example.com')).query(api.accounts.status,{});expect(bad.state).toBe('invalid');if(bad.state==='invalid')expect(bad.reason).toBe('invalid_format');
+  const missing=await t.withIdentity({subject:'firebase-uid',tokenIdentifier:'https://securetoken.google.com/test-project|firebase-uid'}).query(api.accounts.status,{});expect(missing.state).toBe('invalid');if(missing.state==='invalid')expect(missing.reason).toBe('missing_email');
+ });
  it('restricts section mutations and shares official deadline updates with enrolled students',async()=>{
   const t=createTest(),root=t.withIdentity(who('0000-0000@lspu.edu.ph'));await root.mutation(api.accounts.bootstrapAdmin,{});
   const teacher=await root.mutation(api.accounts.provision,{email:'1111-1111@lspu.edu.ph',name:'Teacher',role:'instructor'});
