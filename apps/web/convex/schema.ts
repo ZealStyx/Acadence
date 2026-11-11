@@ -10,6 +10,9 @@ export default defineSchema({
   courses: defineTable({subject:v.string(), name:v.string(), program:v.string(), yearLevel:v.number(), instructorId:v.id('accounts'), academicSectionId:v.optional(v.id('academicSections'))}).index('by_instructor',['instructorId']).index('by_academic_section',['academicSectionId']),
   memberships: defineTable({studentId:v.id('accounts'), courseId:v.id('courses')}).index('by_student',['studentId']).index('by_course',['courseId']).index('by_student_course',['studentId','courseId']),
   assessments: defineTable({courseId:v.id('courses'), title:v.string(), type:v.union(v.literal('quiz'),v.literal('activity'),v.literal('exam'),v.literal('performance')), dueDate:v.string(), weightPercent:v.number(), major:v.boolean(), createdBy:v.id('accounts'), updatedAt:v.number()}).index('by_course',['courseId']),
+  // Private student-side Classroom cache. Only trusted server-side sync will populate it.
+  classroomStudentCourses: defineTable({ownerId:v.id('accounts'), googleCourseId:v.string(), name:v.string(), selected:v.boolean()}).index('by_owner',['ownerId']).index('by_owner_course',['ownerId','googleCourseId']),
+  classroomStudentWork: defineTable({ownerId:v.id('accounts'), googleCourseId:v.string(), googleCourseWorkId:v.string(), title:v.string(), state:v.union(v.literal('PUBLISHED'),v.literal('DRAFT'),v.literal('DELETED')), dueDate:v.optional(v.string()), sourceUrl:v.optional(v.string()), updatedAt:v.number()}).index('by_owner_course',['ownerId','googleCourseId']).index('by_owner_course_work',['ownerId','googleCourseId','googleCourseWorkId']),
   // Legacy prototype tables retained so an existing deployment can migrate without data loss.
   users:defineTable({name:v.string(),email:v.string(),contact:v.optional(v.string())}),
   sections:defineTable({name:v.string(),program:v.string(),yearLevel:v.string()}),
