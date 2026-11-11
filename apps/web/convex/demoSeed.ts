@@ -2,7 +2,7 @@ import {queryGeneric,mutationGeneric} from 'convex/server';
 import {v} from 'convex/values';
 import {requireAccount,normalizeEmail} from './access';
 import {weekStart,addDays} from './calculations';
-import {BATCH,TERM,sections,counts,assessmentsFor} from './pitchData';
+import {BATCH,TERM,sections,counts,assessmentsFor,additionalShowcaseSections} from './pitchData';
 import type {Id} from './_generated/dataModel';
 const flag=()=>{if(process.env.PITCH_DEMO_ENABLED!=='true')throw new Error('Pitch demo is disabled in this Convex deployment.');};
 const mark=(key:string)=>({demoBatchKey:BATCH,demoEntityKey:key});
@@ -15,26 +15,35 @@ async function validate(ctx:any,instructorEmail:string,studentEmail:string){
  if(student){const membership=await ctx.db.query('sectionMembers').withIndex('by_student',(q:any)=>q.eq('studentId',student._id)).unique();if(membership&&membership.demoBatchKey!==BATCH)throw new Error('Student already has a primary section. Use a separate test account; no membership was changed.');}
  return {teacher,student};
 }
+// Reference dates are safe for authenticated pitch participants; no credentials are exposed.
+export const pitchWindow=queryGeneric({args:{},handler:async ctx=>{await requireAccount(ctx);const batch=await ctx.db.query('demoBatches').withIndex('by_key',q=>q.eq('key',BATCH)).unique();return batch?{referenceMonday:batch.referenceMonday,term:batch.term}:null;}});
 export const status=queryGeneric({args:{},handler:async ctx=>{await requireAccount(ctx,'admin');if(process.env.PITCH_DEMO_ENABLED!=='true')return {enabled:false,batch:null,counts};const batch=await ctx.db.query('demoBatches').withIndex('by_key',q=>q.eq('key',BATCH)).unique();return {batch,counts,enabled:true};}});
 export const preview=queryGeneric({args:{instructorEmail:v.string(),studentEmail:v.string(),referenceMonday:v.optional(v.string())},handler:async(ctx,args)=>{await auth(ctx);const {student}=await validate(ctx,args.instructorEmail,args.studentEmail);if(args.referenceMonday&&weekStart(args.referenceMonday)!==args.referenceMonday)throw new Error('Reference date must be a Monday.');return {...counts,syntheticStudents:counts.students-(student?1:0),realStudents:student?1:0,term:TERM};}});
 export const seed=mutationGeneric({args:{instructorEmail:v.string(),studentEmail:v.string(),referenceMonday:v.optional(v.string()),confirmation:v.string()},handler:async(ctx,args)=>{
  await auth(ctx);if(args.confirmation!=='SEED_ACADENCE_PITCH_DEMO')throw new Error('Incorrect seed confirmation.');const {teacher,student}=await validate(ctx,args.instructorEmail,args.studentEmail);
- const existing=await ctx.db.query('demoBatches').withIndex('by_key',q=>q.eq('key',BATCH)).unique();if(existing){if(existing.instructorId!==teacher._id||existing.studentId!==student?._id)throw new Error('Existing batch has different accounts. Reset it before changing configuration.');return {created:false,referenceMonday:existing.referenceMonday,...counts};}
+ const existing=await ctx.db.query('demoBatches').withIndex('by_key',q=>q.eq('key',BATCH)).unique();if(existing){if(existing.instructorId!==teacher._id||existing.studentId!==student?._id)throw new Error('Existing batch has different accounts. Reset it before changing configuration.');let updated=0;
+  const matches=(await ctx.db.query('accounts').withIndex('by_demo_batch',q=>q.eq('demoBatchKey',BATCH)).collect()).filter(a=>a.demoEntityKey==='instructor:2');if(matches.length>1)throw new Error('Duplicate demo instructor; no assignments were updated.');
+  let coInstructor=matches[0];if(!coInstructor){const email='pitch-169@demo.invalid';if(await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',email)).unique())throw new Error('Demo instructor email already exists. No assignments were updated.');const id=await ctx.db.insert('accounts',{...mark('instructor:2'),email,name:'Demo Instructor CCS',role:'instructor',active:true});coInstructor=(await ctx.db.get(id))!;}
+  if(coInstructor.firebaseUid||coInstructor.role!=='instructor'||!coInstructor.active)throw new Error('Demo instructor is no longer available. No assignments were updated.');
+  const demoCourses=await ctx.db.query('courses').withIndex('by_demo_batch',q=>q.eq('demoBatchKey',BATCH)).collect();
+  for(const j of [2,3]){const target=demoCourses.filter(c=>c.demoEntityKey===`course:2:${j}`);if(target.length!==1)throw new Error('Demo course is missing or duplicated; no assignments were updated.');const course=target[0];if(course.instructorId===coInstructor._id)continue;if(course.instructorId!==teacher._id)throw new Error('Demo course owner changed; no assignments were updated.');await ctx.db.patch(course._id,{instructorId:coInstructor._id});updated++;}
+  for(const index of additionalShowcaseSections){const target=(await ctx.db.query('courses').withIndex('by_demo_batch',q=>q.eq('demoBatchKey',BATCH)).collect()).filter(c=>c.demoEntityKey===`course:${index}:0`);if(target.length!==1)throw new Error('Demo course is missing or duplicated; resolve the batch before updating.');const course=target[0];if(course.instructorId===teacher._id)continue;const owner=await ctx.db.get(course.instructorId);if(!owner||owner.demoBatchKey!==BATCH||owner.demoEntityKey!==`instructor:${index}`)throw new Error('Demo course owner changed; no assignments were updated.');await ctx.db.patch(course._id,{instructorId:teacher._id});updated++;}
+  return {created:false,updated,referenceMonday:existing.referenceMonday,...counts};}
  const monday=args.referenceMonday||weekStart(new Date().toISOString().slice(0,10));if(weekStart(monday)!==monday)throw new Error('Reference date must be a Monday.');
  // Never adopt or overwrite a real record on a natural-key collision.
  for(const s of sections){const matches=await ctx.db.query('academicSections').withIndex('by_code_term',q=>q.eq('code',s.code)).collect();if(matches.some(x=>x.term===TERM))throw new Error(`Section ${s.code} already exists for this term. Use a separate deployment.`);}
- for(let i=1;i<=168;i++){const email=`pitch-${String(i).padStart(3,'0')}@demo.invalid`;if(await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',email)).unique())throw new Error('Demo email already exists. No data was written.');}
+ for(let i=1;i<=169;i++){const email=`pitch-${String(i).padStart(3,'0')}@demo.invalid`;if(await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',email)).unique())throw new Error('Demo email already exists. No data was written.');}
  await ctx.db.insert('demoBatches',{key:BATCH,referenceMonday:monday,term:TERM,instructorId:teacher._id,...(student?{studentId:student._id}:{}),createdAt:Date.now()});
  let number=0,instructorNumber=160;
  for(let index=0;index<sections.length;index++){
   const s=sections[index];const sectionId=await ctx.db.insert('academicSections',{...mark(`section:${index}`),code:s.code,program:s.program,yearLevel:s.year,term:TERM});
-  const instructorId=index===2?teacher._id:await ctx.db.insert('accounts',{...mark(`instructor:${index}`),email:`pitch-${String(++instructorNumber).padStart(3,'0')}@demo.invalid`,name:`Demo Instructor ${s.college}`,role:'instructor',active:true});
+  const instructorId=await ctx.db.insert('accounts',{...mark(`instructor:${index}`),email:index===2?'pitch-169@demo.invalid':`pitch-${String(++instructorNumber).padStart(3,'0')}@demo.invalid`,name:`Demo Instructor ${s.college}`,role:'instructor',active:true});
   for(let j=0;j<s.size;j++){
    const useReal=index===2&&j===0&&student;const id=useReal?student._id:await ctx.db.insert('accounts',{...mark(`student:${index}:${j}`),email:`pitch-${String(++number).padStart(3,'0')}@demo.invalid`,name:`Demo Student ${String(number).padStart(3,'0')}`,role:'student',active:true,program:s.program,yearLevel:s.year});
    await ctx.db.insert('sectionMembers',{...mark(`member:${index}:${j}`),studentId:id,academicSectionId:sectionId});
   }
-  const courseIds:Id<'courses'>[]=[];for(let j=0;j<s.subjects.length;j++)courseIds.push(await ctx.db.insert('courses',{...mark(`course:${index}:${j}`),subject:s.subjects[j],name:`Illustrative ${s.subjects[j]} (pitch demo)`,program:s.program,yearLevel:s.year,instructorId,academicSectionId:sectionId}));
-  let n=0;for(const item of assessmentsFor(index))await ctx.db.insert('assessments',{...mark(`assessment:${index}:${n++}`),courseId:courseIds[item.course],title:item.title,type:item.type,dueDate:addDays(monday,item.week*7+item.day),weightPercent:item.weightPercent,major:item.major,createdBy:instructorId,updatedAt:Date.now()});
+  const courseIds:Id<'courses'>[]=[];const courseInstructors:Id<'accounts'>[]=[];for(let j=0;j<s.subjects.length;j++){const owner=(index===2&&j<2)||(additionalShowcaseSections.some(i=>i===index)&&j===0)?teacher._id:instructorId;courseInstructors.push(owner);courseIds.push(await ctx.db.insert('courses',{...mark(`course:${index}:${j}`),subject:s.subjects[j],name:`Illustrative ${s.subjects[j]} (pitch demo)`,program:s.program,yearLevel:s.year,instructorId:owner,academicSectionId:sectionId}));}
+  let n=0;for(const item of assessmentsFor(index))await ctx.db.insert('assessments',{...mark(`assessment:${index}:${n++}`),courseId:courseIds[item.course],title:item.title,type:item.type,dueDate:addDays(monday,item.week*7+item.day),weightPercent:item.weightPercent,major:item.major,createdBy:courseInstructors[item.course],updatedAt:Date.now()});
  }
  return {created:true,referenceMonday:monday,...counts};
 }});

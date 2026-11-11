@@ -1,5 +1,7 @@
 // All subject titles are illustrative, not claims about LSPU's curriculum.
 export const BATCH='acadence-pitch-demo-v1';
+// One additional offering in each of these sections is assigned to the showcase instructor.
+export const additionalShowcaseSections=[0,1,4] as const;
 export const TERM='1st Semester AY 2026–2027';
 export const sections=[
  {college:'CAS',code:'BSPsych 1A',program:'BSPsych',year:1,size:16,subjects:['PSYC 101','PSYC 102','GEC 101','PATHFit 1']},
@@ -19,4 +21,4 @@ export function assessmentsFor(sectionIndex:number){
  if(sectionIndex===1||sectionIndex===7)for(let j=0;j<2;j++)result.push({week:3,day:j+2,course:j,type:'activity',title:`Illustrative project ${j+1}`,weightPercent:15,major:true});
  return result;
 }
-export const counts={sections:sections.length,students:160,instructors:8,courses:36,assessments:sections.reduce((n,_,i)=>n+assessmentsFor(i).length,0),snapshots:0,reviews:0};
+export const counts={sections:sections.length,students:160,instructors:9,courses:36,assessments:sections.reduce((n,_,i)=>n+assessmentsFor(i).length,0),snapshots:0,reviews:0};
