@@ -37,3 +37,7 @@ describe('teacher Classroom coursework',()=>{
   const result=await listTeacherCoursework('token','c',work);expect(result[0].workType).toBe('ASSIGNMENT');expect(result[0].description).toBe('Prepare a report');
  });
 });
+it('preserves student course section and state when Classroom provides them',async()=>{
+ const mock=vi.fn<typeof fetch>().mockResolvedValue(json({courses:[{id:'c',name:'Math',section:'BSIT 3A',courseState:'ACTIVE'}]}));
+ expect(await listStudentCourses('token',mock)).toEqual([{googleCourseId:'c',name:'Math',section:'BSIT 3A',courseState:'ACTIVE'}]);
+});

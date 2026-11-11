@@ -1,6 +1,7 @@
 import {queryGeneric, mutationGeneric} from 'convex/server';
 import {v} from 'convex/values';
 import {requireAccount} from './access';
+import {weekStart} from './calculations';
 
 // Private cache only; no OAuth credentials or teacher-visible coursework are returned.
 // These optional cache queries are separate from the on-demand OAuth connection.
@@ -62,10 +63,11 @@ export const confirmReview=mutationGeneric({args:{googleCourseId:v.string(),goog
 }});
 
 // Server-authenticated snapshots: browser callers cannot invent Classroom membership or work.
-export const syncSnapshot=mutationGeneric({args:{secret:v.string(),courses:v.array(v.object({googleCourseId:v.string(),name:v.string(),courseState:v.optional(v.string()),section:v.optional(v.string()),workAvailable:v.boolean(),work:v.array(v.object({googleCourseWorkId:v.string(),title:v.string(),dueDate:v.optional(v.string()),assigneeMode:v.optional(v.string())}))}))},handler:async(ctx,{secret,courses})=>{
+export const syncSnapshot=mutationGeneric({args:{secret:v.string(),courses:v.array(v.object({googleCourseId:v.string(),name:v.string(),courseState:v.optional(v.string()),section:v.optional(v.string()),workAvailable:v.boolean(),weeklyCounts:v.optional(v.array(v.object({start:v.string(),count:v.number()}))),work:v.array(v.object({googleCourseWorkId:v.string(),title:v.string(),dueDate:v.optional(v.string()),assigneeMode:v.optional(v.string())}))}))},handler:async(ctx,{secret,courses})=>{
  const account=await requireAccount(ctx);if(account.role==='admin')throw new Error('Student or instructor access required.');
  const expected=process.env.CLASSROOM_SYNC_SECRET;if(!expected||expected.length<32||secret!==expected)throw new Error('Classroom sync not configured.');
  if(courses.length>500||courses.some(c=>!c.googleCourseId||c.googleCourseId.length>256||!c.name||c.name.length>500||c.work.length>1000||c.work.some(w=>!w.googleCourseWorkId||w.googleCourseWorkId.length>256||!w.title||w.title.length>500)))throw new Error('Invalid Classroom snapshot.');
+ if(courses.some(c=>c.weeklyCounts&&(account.role!=='student'||!c.workAvailable||c.weeklyCounts.length>1000||new Set(c.weeklyCounts.map(w=>w.start)).size!==c.weeklyCounts.length||c.weeklyCounts.some(w=>!Number.isInteger(w.count)||w.count<1||w.count>1000||weekStart(w.start)!==w.start))))throw new Error('Invalid weekly counts.');
  const old=await ctx.db.query('classroomSnapshots').withIndex('by_owner',q=>q.eq('ownerId',account._id)).collect();for(const row of old)await ctx.db.delete(row._id);
  const now=Date.now();for(const course of courses)await ctx.db.insert('classroomSnapshots',{...course,ownerId:account._id,role:account.role,syncedAt:now});
 }});
