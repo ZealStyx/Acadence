@@ -1,3 +1,9 @@
+/* Scrollbars are visually hidden; scrolling remains available by touch, wheel and keyboard. */
+html, .app, .app * { scrollbar-width: none; -ms-overflow-style: none; }
+html::-webkit-scrollbar, .app::-webkit-scrollbar, .app *::-webkit-scrollbar { display: none; width: 0; height: 0; }
+html, .app .dash-table-wrap { scrollbar-gutter: auto; }
+.scroll-hint { font-size: 12px; color: var(--color-muted); margin: 8px 0 0; }
+
 /* Workspace foundation: tokens shared by interactive surfaces and both themes. */
 .app {
   --brand-gradient: linear-gradient(120deg, #3b5bd6, #5545ca);
@@ -28,7 +34,7 @@
 .stable-heatmap th, .stable-heatmap td { overflow-wrap: anywhere; }
 .stable-heatmap th:not(:first-child) { white-space: nowrap; }
 .stable-status { min-height: 18px; }
-.dash-table-wrap { scrollbar-gutter: stable; }
+
 
 /* Management views use the remaining workspace as an internal scrolling region. */
 .management-workspace { display: flex; flex-direction: column; min-height: calc(100dvh - 40px); }
