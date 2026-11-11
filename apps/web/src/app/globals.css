@@ -897,7 +897,7 @@ td input[type="checkbox"] {
   }
 }
 
-/* Sign-in: a calm entry point using the same Pulso visual language. */
+/* Sign-in: a calm entry point using the same Acadence visual language. */
 .login-page {
   min-height: 100vh;
   display: grid;
@@ -1630,7 +1630,7 @@ td input[type="checkbox"] {
   background: #f1f5f9;
   color: #475569;
 }
-/* Pulso workspace refinement */
+/* Acadence workspace refinement */
 :root {
   background: #f7f8fc;
   color: #111629;
@@ -3463,7 +3463,7 @@ body,
   margin-top: 14px;
 }
 
-/* Pulso design foundation: shared visual language for active workspaces. */
+/* Acadence design foundation: shared visual language for active workspaces. */
 :root {
   --color-brand: #4f46e5;
   --color-brand-hover: #4338ca;
@@ -4366,7 +4366,7 @@ html {
   .compact-list { max-height: 45vh; }
 }
 
-/* Pulso workspace tokens and compact shell. */
+/* Acadence workspace tokens and compact shell. */
 @font-face {
   font-family: "Plus Jakarta Sans";
   src: url('/fonts/plus-jakarta-sans-latin.woff2') format('woff2');

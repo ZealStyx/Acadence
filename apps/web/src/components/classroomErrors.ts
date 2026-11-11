@@ -8,7 +8,7 @@ export function classroomError(error:unknown,stage:'popup'|'courses'):string {
    'auth/popup-blocked':'The browser blocked the Google popup. Allow popups for this site and try again.',
    'auth/popup-closed-by-user':'The Google popup was closed before connecting. Try again and allow access.',
    'auth/cancelled-popup-request':'The Google popup was cancelled. Close other sign-in popups and try again.',
-   'auth/user-mismatch':'Choose the same Google account you used to sign in to Pulso.',
+   'auth/user-mismatch':'Choose the same Google account you used to sign in to Acadence.',
    'auth/unauthorized-domain':'This website domain is not authorized in Firebase Authentication. Ask an administrator to add it under authorized domains.',
    'auth/operation-not-allowed':'Google sign-in is not enabled in Firebase Authentication.',
    'auth/network-request-failed':'Could not reach Google. Check your internet connection and try again.',

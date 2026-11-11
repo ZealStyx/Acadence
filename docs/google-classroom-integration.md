@@ -4,7 +4,7 @@
 
 ## Goals and boundaries
 
-- Keep the existing Firebase Google sign-in and Convex UID-based authorization. Classroom access is an **optional, separate OAuth connection**, not a replacement login or a new role-assignment mechanism. Administrators manage Pulso roles, academic sections and memberships.
+- Keep the existing Firebase Google sign-in and Convex UID-based authorization. Classroom access is an **optional, separate OAuth connection**, not a replacement login or a new role-assignment mechanism. Administrators manage Acadence roles, academic sections and memberships.
 - Classroom is the source of truth for Classroom content. The first integration reads coursework; it does not publish, edit, grade, return or turn in work. Link users back to Classroom for those actions.
 - Scores for a fixed academic section use the same shared deadlines for every member. Unmapped or individually assigned work stays separate as a personal adjustment, never silently affecting the section score.
 - Do not trust a course title, email address or matching subject name as proof of a student or section mapping. An email domain check alone is not proof of mailbox ownership; design explicit, authenticated account linking and roster verification before using Classroom data across users.
@@ -22,18 +22,18 @@
 ### B. Instructor course-offering connection (second milestone)
 
 1. An authenticated instructor connects their own Classroom account and selects a course they are authorized to teach.
-2. Map it explicitly to an existing Pulso course offering (subject + academic section + term); never create a section, course offering, or membership from a name match.
-3. Verify the Classroom roster against the Pulso section before treating published course-wide work as shared. Uncertain and individually assigned work must not be exposed or counted as shared without a verified mapping.
+2. Map it explicitly to an existing Acadence course offering (subject + academic section + term); never create a section, course offering, or membership from a name match.
+3. Verify the Classroom roster against the Acadence section before treating published course-wide work as shared. Uncertain and individually assigned work must not be exposed or counted as shared without a verified mapping.
 4. Show teacher-visible drafts, scheduled and deleted items only to authorized instructors. A tentative collision preview must not add unpublished work to the official timeline or score. Classroom `scheduledTime` is a publish timestamp, not a deadline.
-5. Keep Pulso's assessment type, grade weight, and other instructor-entered metadata on sync. Do not infer a grade weight from Classroom points.
+5. Keep Acadence's assessment type, grade weight, and other instructor-entered metadata on sync. Do not infer a grade weight from Classroom points.
 
 ## Proposed architecture
 
 - **Browser:** explicit connect/disconnect and course-selection controls, sync status, and links back to Classroom. Never expose refresh tokens.
 - **Server-side OAuth boundary:** use a separate Classroom OAuth client, exact redirect URI, authorization code exchange, state bound to the initiating authenticated session, and PKCE where supported. Reject reused, expired or mismatched state. Verify the connected Google identity independently; do not link users solely by email. Review provider behavior and current Google requirements before implementation.
-- **Credential storage:** encrypt refresh tokens using a server-only key; keep key and OAuth client secret out of frontend variables, logs, and Git. Bind each connection to the Pulso Firebase UID and authorize every read, sync and disconnect. Plan key rotation, token revocation and cleanup before launch.
+- **Credential storage:** encrypt refresh tokens using a server-only key; keep key and OAuth client secret out of frontend variables, logs, and Git. Bind each connection to the Acadence Firebase UID and authorize every read, sync and disconnect. Plan key rotation, token revocation and cleanup before launch.
 - **Convex:** authenticated queries and mutations for user-visible connection metadata and mappings; server-side actions for OAuth exchange and Classroom API calls. Never return credentials to clients. Handle retries, pagination, rate limits and expired/revoked grants explicitly; record safe sync status without logging tokens or coursework descriptions unnecessarily.
-- **Sync records:** retain Google course ID and coursework ID, source link, update timestamp, state, scheduled publish time, due date/time, assignee mode and mapping provenance. Keep personal and shared visibility separate. Upsert idempotently by stable Classroom identifiers; a manual Pulso deadline is not automatically merged with a Classroom item.
+- **Sync records:** retain Google course ID and coursework ID, source link, update timestamp, state, scheduled publish time, due date/time, assignee mode and mapping provenance. Keep personal and shared visibility separate. Upsert idempotently by stable Classroom identifiers; a manual Acadence deadline is not automatically merged with a Classroom item.
 
 The exact storage model, API endpoints, token encryption mechanism, and authorization checks are design work for implementation—not existing functionality. Convex actions and queries must independently enforce ownership and role checks; hiding controls in the UI is insufficient.
 

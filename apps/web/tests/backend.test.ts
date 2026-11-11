@@ -21,6 +21,10 @@ describe('Convex authorization and shared deadlines',()=>{
   await root.mutation(api.accounts.provision,{email:'test@lspu.edu.ph',name:'Student',role:'student'});
   await expect(root.mutation(api.accounts.provision,{email:'test@lspu.edu.ph.example.com',name:'Invalid',role:'student'})).rejects.toThrow();
  });
+ it('supports the current bootstrap variable and prefers it over the legacy one',async()=>{
+  process.env.ACADENCE_BOOTSTRAP_ADMIN_EMAIL='new-admin@lspu.edu.ph';
+  try{const t=createTest(),current=t.withIdentity(who('new-admin@lspu.edu.ph')),legacy=t.withIdentity(who('0000-0000@lspu.edu.ph'));expect((await current.query(api.accounts.status,{})).canBootstrap).toBe(true);expect((await legacy.query(api.accounts.status,{})).canBootstrap).toBe(false);await expect(legacy.mutation(api.accounts.bootstrapAdmin,{})).rejects.toThrow();await current.mutation(api.accounts.bootstrapAdmin,{});expect((await current.query(api.accounts.me,{})).role).toBe('admin');}finally{delete process.env.ACADENCE_BOOTSTRAP_ADMIN_EMAIL;}
+ });
  it('automatically creates only a student account for a new university identity',async()=>{
   const t=createTest(),admin=t.withIdentity(who('0000-0000@lspu.edu.ph'));
   await expect(admin.mutation(api.accounts.registerStudent,{})).rejects.toThrow();
