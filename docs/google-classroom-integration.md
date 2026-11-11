@@ -1,6 +1,6 @@
 # Google Classroom integration: implementation plan
 
-**Status: prototype in progress.** A student can use a Firebase reauthentication popup to request read-only Classroom access, then view active classes and published coursework and refresh them. Data and the short-lived token are held only in browser memory. This flow has not yet been tested with a real Google account or deployed. Instructor integration, background sync, and credential storage are not implemented. The design below describes the fuller planned integration, not all current behavior. Manual deadlines remain available; there is no syllabus upload or parsing.
+**Status: prototype in progress.** A student can connect a Google account through a separate read-only OAuth flow, then view active classes and published coursework and refresh them. Refresh tokens are encrypted server-side and saved per student; coursework is fetched on request. The persistent flow has not yet been tested with a real Google account or deployed. Instructor integration and background sync are not implemented. The design below describes the fuller planned integration, not all current behavior. Manual deadlines remain available; there is no syllabus upload or parsing.
 
 ## Goals and boundaries
 

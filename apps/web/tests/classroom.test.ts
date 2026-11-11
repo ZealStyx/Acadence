@@ -29,3 +29,23 @@ describe('student Classroom cache isolation',()=>{
   expect((await bob.query(api.classroom.studentWork,{})).map(w=>w.title)).toEqual(['Bob only']);
  });
 });
+
+describe('saved Classroom connection authorization',()=>{
+ it('keeps encrypted credentials scoped to the authenticated active student',async()=>{
+  const t=createTest();
+  await t.run(async ctx=>{
+   for(const uid of ['alice','bob'])await ctx.db.insert('accounts',{firebaseUid:uid,email:`${uid}@lspu.edu.ph`,name:uid,role:'student',active:true});
+   await ctx.db.insert('accounts',{firebaseUid:'teacher',email:'teacher@lspu.edu.ph',name:'teacher',role:'instructor',active:true});
+  });
+  const alice=t.withIdentity(identity('alice')),bob=t.withIdentity(identity('bob'));
+  await alice.mutation(api.classroom.saveConnection,{encryptedRefreshToken:'v1.encrypted'});
+  expect(await alice.query(api.classroom.connection,{})).toEqual({encryptedRefreshToken:'v1.encrypted'});
+  expect(await bob.query(api.classroom.connection,{})).toBeNull();
+  await bob.mutation(api.classroom.removeConnection,{});
+  expect(await alice.query(api.classroom.connection,{})).not.toBeNull();
+  await expect(t.query(api.classroom.connection,{})).rejects.toThrow();
+  await expect(t.withIdentity(identity('teacher')).query(api.classroom.connection,{})).rejects.toThrow();
+  await alice.mutation(api.classroom.removeConnection,{});
+  expect(await alice.query(api.classroom.connection,{})).toBeNull();
+ });
+});
