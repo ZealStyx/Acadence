@@ -191,3 +191,29 @@ html, .app .dash-table-wrap { scrollbar-gutter: auto; }
 .deadline-with-actions .deadline-actions > * { flex: 0 0 auto; }
 .deadline-with-actions .deadline-actions button { white-space: nowrap; }
 @media (max-width: 560px) { .deadline-with-actions .deadline-actions { justify-content: flex-start; } }
+
+/* Crunch Weeks: fit student cards and staff section/week controls to phone widths. */
+.mobile-heatmap { display: none; }
+@media (max-width: 767px) {
+ .figma-student, .figma-week-cards, .figma-student-grid, .dash-columns, .dash-panel { min-width: 0; max-width: 100%; }
+ .figma-week-cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+ .figma-week-cards .week-card { min-width: 0; overflow-wrap: anywhere; }
+ .figma-student-grid, .dash-columns { grid-template-columns: minmax(0, 1fr); }
+ .desktop-heatmap, .heatmap-scroll-hint { display: none; }
+ .mobile-heatmap { display: grid; gap: 16px; margin: 16px 0; min-width: 0; }
+ .mobile-heatmap-row { min-width: 0; padding: 12px; border: 1px solid var(--color-border, #e2e8f0); border-radius: 10px; }
+ .mobile-heatmap-row h3, .mobile-heatmap-row p { margin: 0; overflow-wrap: anywhere; }
+ .mobile-heatmap-row p { margin-top: 4px; color: var(--color-muted); font-size: 12px; }
+ .mobile-heatmap-weeks { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 74px), 1fr)); gap: 8px; margin-top: 12px; }
+ .mobile-heatmap-week { min-width: 0; display: flex; flex-direction: column; gap: 6px; }
+ .mobile-heatmap-week > span { font-size: 11px; line-height: 1.2; overflow-wrap: anywhere; }
+ .mobile-heatmap-week .dash-cell { width: 100%; min-width: 0; }
+ .sidebar nav { grid-auto-flow: row; grid-auto-columns: auto; overflow: visible; }
+ .sidebar .nav-button span { white-space: normal; overflow-wrap: anywhere; line-height: 1.05; }
+}
+@media (max-width: 360px) {
+ .figma-week-cards { grid-template-columns: minmax(0, 1fr); }
+ .dash-pager { display: grid; grid-template-columns: 1fr 1fr; }
+ .dash-pager > span { grid-column: 1 / -1; grid-row: 1; text-align: center; }
+ .dash-pager button { min-width: 0; }
+}

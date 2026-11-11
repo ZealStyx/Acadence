@@ -12,12 +12,12 @@ const guides:Record<GuideRole,Record<string,string[]>>={
  instructor:{
   Home:['Review your upcoming recorded deadlines and the section workload summary. The section score includes recorded deadlines from registered offerings, not every item visible in Classroom.',bands],
   Sections:['Choose a section and subject to view and manage its recorded deadlines. Use Add deadline or Edit to check projected section workload and suggested dates before saving; Delete asks for confirmation.',bands],
-  'Crunch Weeks':['Each row represents an assigned section and each column a week. Select a cell to see that section’s contributing recorded deadlines; use the arrows to move one week and scroll sideways to see more columns.',bands,'While a new range loads, the previous table remains visible. Unmapped offerings and unrecorded work are not included.'],
+  'Crunch Weeks':['Each row represents an assigned section and each column a week. Select a cell to see that section’s contributing recorded deadlines; use the arrows to move one week. On mobile, weeks wrap under each section; on larger screens, scroll the table sideways to see more columns.',bands,'While a new range loads, the previous table remains visible. Unmapped offerings and unrecorded work are not included.'],
   Classroom:['Connect and refresh your teaching account, choose a class, and review its published coursework. AI categories are suggestions; you choose and confirm the category. Unavailable classes and sync failures may leave the view incomplete.'],
   Profile:['View or edit your profile, or open Preferences to change appearance and accessibility settings.'],
  },
  admin:{
-  'Crunch Weeks':['Each row is an eligible section and each column a week. Select a cell to inspect its score; use the arrows to move one week and scroll sideways to see more columns. Program, term and deadline type filters change the displayed results.',bands,'Sections with fewer than five active students are hidden. The table can show the previous range while updated results load.'],
+  'Crunch Weeks':['Each row is an eligible section and each column a week. Select a cell to inspect its score; use the arrows to move one week. On mobile, weeks wrap under each section; on larger screens, scroll the table sideways to see more columns. Program, term and deadline type filters change the displayed results.',bands,'Sections with fewer than five active students are hidden. The table can show the previous range while updated results load.'],
  },
 };
 export function pageGuideText(role:GuideRole,page:string):string[]|undefined{return guides[role]?.[page];}
