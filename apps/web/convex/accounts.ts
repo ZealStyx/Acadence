@@ -1,8 +1,16 @@
 import {mutationGeneric,queryGeneric} from 'convex/server';
 import {v} from 'convex/values';
+import type {Id} from './_generated/dataModel';
 import {emailPattern,allowedEmail,exceptionAdmins,identityEmail,normalizeEmail,requireAccount,firebaseIdentity} from './access';
 const role=v.union(v.literal('student'),v.literal('instructor'),v.literal('admin'));
 export const me=queryGeneric({args:{},handler:async(ctx)=>requireAccount(ctx)});
+// Users may edit only their own display name and optional contact number.
+export const updateProfile=mutationGeneric({args:{name:v.string(),contact:v.string()},handler:async(ctx,{name,contact})=>{
+ const account=await requireAccount(ctx);const cleanName=name.trim(),cleanContact=contact.trim();
+ if(!cleanName||cleanName.length>120)throw new Error('Enter a name of up to 120 characters.');
+ if(cleanContact.length>40)throw new Error('Contact number must be 40 characters or fewer.');
+ await ctx.db.patch(account._id as Id<'accounts'>,{name:cleanName,contact:cleanContact||undefined});
+}});
 // First administrator must both sign in as the configured university account and invoke this once.
 export const bootstrapAdmin=mutationGeneric({args:{},handler:async(ctx)=>{
  const identity=await identityEmail(ctx); const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');
