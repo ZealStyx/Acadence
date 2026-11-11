@@ -26,3 +26,9 @@ export function personalDatedWork(courses:CourseResult[],confirmedIds:string[],s
  return courses.flatMap(({course,work,error})=>error?[]:work.filter(w=>!known.has(JSON.stringify([course.googleCourseId,w.googleCourseWorkId]))).map(w=>({...w,courseName:course.name})))
   .filter(w=>w.dueDate&&w.dueDate>=start&&w.dueDate<=end).sort((a,b)=>(a.dueDate||'').localeCompare(b.dueDate||''));
 }
+
+/** An incomplete, stale or unclassified personal list must never be represented as zero. */
+export function classroomWeekEstimate(classroom:import('./Classroom').ClassroomState,items:Deadline[],estimates:Estimates):number|null {
+ if(!classroom.courses||classroom.loading||classroom.courses.some(c=>c.error)||!!classroom.error)return null;
+ return estimatedScore(items,estimates);
+}

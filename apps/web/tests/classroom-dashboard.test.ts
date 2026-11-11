@@ -17,3 +17,18 @@ describe('automatic student deadline breakdown',()=>{
   expect(estimatedScore([],{})).toBe(0);
  });
 });
+
+describe('personal Classroom score availability',()=>{
+ it('does not confuse unconfirmed tasks, disconnected accounts or partial data with zero',async()=>{
+  const {classroomWeekEstimate}=await import('../src/components/classroomDashboard');
+  const course:CourseResult={course:{googleCourseId:'course',name:'Math'},error:false,work:[work('quiz','2026-11-10')]};
+  const items=studentDeadlines([course]);const state={courses:[course],loading:false,error:'',synced:true};
+  expect(classroomWeekEstimate(state,items,{})).toBeNull();
+  expect(classroomWeekEstimate(state,items,{[estimateKey(items[0])]:'quiz'})).toBe(1);
+  expect(classroomWeekEstimate(state,[],{})).toBe(0);
+  expect(classroomWeekEstimate({...state,courses:null},[],{})).toBeNull();
+  expect(classroomWeekEstimate({...state,courses:[{...course,error:true}]},[],{})).toBeNull();
+  expect(classroomWeekEstimate({...state,error:'Refresh failed'},items,{[estimateKey(items[0])]:'quiz'})).toBeNull();
+  expect(classroomWeekEstimate({...state,error:'Shared sync failed',synced:false},items,{[estimateKey(items[0])]:'quiz'})).toBeNull();
+ });
+});
