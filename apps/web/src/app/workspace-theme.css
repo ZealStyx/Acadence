@@ -180,3 +180,14 @@ html, .app .dash-table-wrap { scrollbar-gutter: auto; }
 .classroom-week-item p { margin: 4px 0; }
 .classroom-week > button { margin-top: 12px; }
 .figma-student-grid > section > .classroom-week, .figma-student-grid > div > .classroom-week, .undated-work { margin-bottom: 16px; }
+.classroom-estimate { border: 1px solid var(--color-border, #d8def0); border-radius: 10px; padding: 12px; margin: 12px 0; }
+.classroom-estimate p { margin: 4px 0 0; }
+
+/* A scrolling flex list must not compress a deadline below the height of its controls. */
+.compact-list > .deadline { flex: 0 0 auto; }
+.deadline-with-actions { flex-wrap: wrap; align-items: flex-start; }
+.deadline-with-actions > div:first-child { flex: 1 1 180px; min-width: 0; overflow-wrap: anywhere; }
+.deadline-with-actions .deadline-actions { flex: 0 1 auto; max-width: 100%; flex-direction: row; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 8px; }
+.deadline-with-actions .deadline-actions > * { flex: 0 0 auto; }
+.deadline-with-actions .deadline-actions button { white-space: nowrap; }
+@media (max-width: 560px) { .deadline-with-actions .deadline-actions { justify-content: flex-start; } }
