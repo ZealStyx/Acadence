@@ -12,6 +12,10 @@ describe('Classroom student read helpers',()=>{
   const mock=vi.fn<typeof fetch>().mockResolvedValue(json({courseWork:[{id:'w1',title:'Exam',state:'PUBLISHED',updateTime:'2026-11-01T00:00:00Z',dueDate:{year:2026,month:12,day:9},alternateLink:'https://classroom.google.com/c/abc/a/def'},{id:'w2',title:'Unscheduled',state:'PUBLISHED',updateTime:'2026-11-01T00:00:00Z'}]}));
   const work=await listStudentCoursework('token','course 1',mock);expect(work[0].dueDate).toBe('2026-12-09');expect(work[1].dueDate).toBeUndefined();expect(String(mock.mock.calls[0][0])).toContain('course%201/courseWork');
  });
+ it('preserves Classroom work type for student AI estimates without using it as a confirmed category',async()=>{
+  const mock=vi.fn<typeof fetch>().mockResolvedValue(json({courseWork:[{id:'w',title:'Assignment',state:'PUBLISHED',workType:'ASSIGNMENT',updateTime:'2026-11-01T00:00:00Z'}]}));
+  const items=await listStudentCoursework('token','course',mock);expect(items[0].workType).toBe('ASSIGNMENT');
+ });
  it('fails closed on drafts, invalid dates or unsafe links',async()=>{
   const base={id:'w',title:'Item',state:'PUBLISHED',updateTime:'2026-11-01T00:00:00Z'};
   for(const override of [{state:'DRAFT'},{dueDate:{year:2026,month:2,day:30}},{alternateLink:'https://evil.example/'}]){
