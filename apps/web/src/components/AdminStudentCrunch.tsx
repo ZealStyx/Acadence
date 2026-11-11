@@ -1,7 +1,6 @@
 'use client';
 import {useCallback,useEffect,useMemo,useRef,useState} from 'react';
 import {firebaseAuth} from '@/lib/firebase';
-import {useMemo,useState} from 'react';
 import {useQuery} from 'convex/react';
 import {anyApi} from 'convex/server';
 type Group={id:string;label:string;unlabelled:boolean;studentCount:number|null;status:'available'|'suppressed'|'unavailable';weeks:{start:string;average:number|null}[]};
