@@ -17,6 +17,7 @@ import type * as calculations from "../calculations.js";
 import type * as classroom from "../classroom.js";
 import type * as classroomGoogle from "../classroomGoogle.js";
 import type * as demoSeed from "../demoSeed.js";
+import type * as insights from "../insights.js";
 import type * as instructor from "../instructor.js";
 import type * as pitchData from "../pitchData.js";
 import type * as sections from "../sections.js";
@@ -40,6 +41,7 @@ declare const fullApi: ApiFromModules<{
   classroom: typeof classroom;
   classroomGoogle: typeof classroomGoogle;
   demoSeed: typeof demoSeed;
+  insights: typeof insights;
   instructor: typeof instructor;
   pitchData: typeof pitchData;
   sections: typeof sections;
