@@ -18,12 +18,12 @@ export function challenge(verifier:string){return createHash('sha256').update(ve
 export async function session(token:string){
  const client=new ConvexHttpClient(config().convexUrl);client.setAuth(token);
  const account=await client.query(anyApi.accounts.me,{});
- if(account.role!=='student'||!account.firebaseUid)throw new Error('Student access required.');
+ if(!['student','instructor'].includes(account.role)||!account.firebaseUid)throw new Error('Student or instructor access required.');
  // Convex has verified the token before we read its provider identity.
  const payload=JSON.parse(Buffer.from(token.split('.')[1],'base64url').toString('utf8'));
  const ids=payload?.firebase?.identities?.['google.com'];
  if(payload.sub!==account.firebaseUid||!Array.isArray(ids)||typeof ids[0]!=='string')throw new Error('Google sign-in required.');
- return {client,uid:account.firebaseUid as string,googleId:ids[0] as string};
+ return {client,uid:account.firebaseUid as string,googleId:ids[0] as string,role:account.role as 'student'|'instructor'};
 }
 export function bearer(request:Request){const auth=request.headers.get('authorization');if(!auth?.startsWith('Bearer '))throw new Error('Sign in required.');return auth.slice(7);}
 export function checkOrigin(request:Request){if(request.headers.get('origin')!==config().origin)throw new Error('Invalid request origin.');}
