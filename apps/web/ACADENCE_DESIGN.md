@@ -1,10 +1,10 @@
-# Pulso interface notes
+# Acadence interface notes
 
-Pulso and the existing `public/logo.png` are the approved brand for this iteration. The active workspace remains `Workspace.tsx`; its student, instructor and admin components consume the existing queries and mutations. Legacy/demo components were not deleted.
+Acadence and the existing `public/logo.png` are the approved brand for this iteration. The active workspace remains `Workspace.tsx`; its student, instructor and admin components consume the existing queries and mutations. Legacy/demo components were not deleted.
 
 ## Shared styles
 
-`src/app/globals.css` retains older compatibility rules and contains a labelled Pulso design foundation near the end. It is formatted for readability; some legacy overrides remain intentionally because their consumers have not all been audited. The foundation defines `--color-*`, `--space-*`, `--radius-card` and `--shadow-card`. Reusable patterns include `.card`, `.panel`, `.staff-header`, `.primary`, `.secondary`, `.field`, `.chip`, `.state-card`, `.empty-state`, `.filter-bar`, `.deadline-item`, `.dash-table-wrap` and `.connection-panel`. Status labels accompany colors; unavailable data is not treated as zero.
+`src/app/globals.css` retains older compatibility rules and contains a labelled Acadence design foundation near the end. It is formatted for readability; some legacy overrides remain intentionally because their consumers have not all been audited. The foundation defines `--color-*`, `--space-*`, `--radius-card` and `--shadow-card`. Reusable patterns include `.card`, `.panel`, `.staff-header`, `.primary`, `.secondary`, `.field`, `.chip`, `.state-card`, `.empty-state`, `.filter-bar`, `.deadline-item`, `.dash-table-wrap` and `.connection-panel`. Status labels accompany colors; unavailable data is not treated as zero.
 
 The existing shared shell retains role-specific destinations, a role/account summary and visible focus treatment. The mobile bottom navigation uses safe-area padding. Wide heatmaps are labelled horizontal scroll regions. Account changes and Classroom disconnects use browser confirmation dialogs; the profile edit dialog retains its existing focus trap and Escape handling. The CSS retains reduced-motion and larger-text preferences.
 

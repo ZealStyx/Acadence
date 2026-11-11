@@ -5,7 +5,7 @@ export const runtime='nodejs';
 export async function GET(request:NextRequest){
  const cfg=config();let result='error';
  try{
-  const cookie=request.cookies.get('pulso_classroom_oauth')?.value;if(!cookie)throw Error('Missing state');
+  const cookie=request.cookies.get('acadence_classroom_oauth')?.value??request.cookies.get('pulso_classroom_oauth')?.value;if(!cookie)throw Error('Missing state');
   const state=JSON.parse(unseal(cookie,'oauth-state'));
   if(typeof state.state!=='string'||state.state!==request.nextUrl.searchParams.get('state')||state.expires<Date.now()||!request.nextUrl.searchParams.get('code'))throw Error('Invalid state');
   const user=await session(state.idToken);if(user.uid!==state.uid||user.googleId!==state.googleId)throw Error('Identity changed');
@@ -15,5 +15,5 @@ export async function GET(request:NextRequest){
   const profile=await info.json();if(profile.sub!==user.googleId)throw Error('Account mismatch');
   await user.client.mutation(anyApi.classroom.saveConnection,{encryptedRefreshToken:seal(token.refresh_token,`refresh:${user.uid}`)});result='connected';
  }catch{/* Never include OAuth data or tokens in redirects. */}
- const response=NextResponse.redirect(`${cfg.origin}/?classroom=${result}`);response.cookies.set('pulso_classroom_oauth','',{httpOnly:true,secure:cfg.origin.startsWith('https:'),sameSite:'lax',path:'/api/classroom/callback',maxAge:0});response.headers.set('Cache-Control','no-store');response.headers.set('Referrer-Policy','no-referrer');return response;
+ const response=NextResponse.redirect(`${cfg.origin}/?classroom=${result}`);response.cookies.set('acadence_classroom_oauth','',{httpOnly:true,secure:cfg.origin.startsWith('https:'),sameSite:'lax',path:'/api/classroom/callback',maxAge:0});response.cookies.set('pulso_classroom_oauth','',{httpOnly:true,secure:cfg.origin.startsWith('https:'),sameSite:'lax',path:'/api/classroom/callback',maxAge:0});response.headers.set('Cache-Control','no-store');response.headers.set('Referrer-Policy','no-referrer');return response;
 }
