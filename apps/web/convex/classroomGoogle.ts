@@ -1,5 +1,5 @@
-/** Read-only Classroom API helpers. The student prototype calls these directly
- * from the browser with a short-lived Google access token held only in memory.
+/** Read-only Classroom API helpers. The student prototype calls these on the server
+ * with a short-lived Google access token held only in memory.
  * These helpers do not persist or log tokens.
  */
 export class ClassroomHttpError extends Error {
