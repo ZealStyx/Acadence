@@ -1747,39 +1747,16 @@ select {
   color: #8994ae;
   margin-top: 3px;
 }
-.sidebar-context {
-  display: flex;
-  align-items: center;
-  gap: 11px;
-  padding: 13px 11px;
-  margin: 41px 0 0;
-  background: #1c223a;
-  border: 1px solid #2a3049;
-  border-radius: 11px;
-}
-.sidebar-context-icon {
-  display: grid;
-  place-items: center;
-  width: 34px;
-  height: 34px;
-  border-radius: 9px;
-  background: #4540a2;
-  color: #d6d4ff;
-  font-size: 18px;
-}
-.sidebar-context div,
 .sidebar-user div,
 .topbar-profile div {
   display: flex;
   flex-direction: column;
   min-width: 0;
 }
-.sidebar-context strong,
 .sidebar-user strong {
   font-size: 12px;
   color: #f7f8ff;
 }
-.sidebar-context small,
 .sidebar-user small {
   font-size: 11px;
   color: #9da9c0;
@@ -2638,7 +2615,6 @@ select {
     z-index: 10;
   }
   .sidebar .brand,
-  .sidebar-context,
   .menu-label,
   .sidebar-bottom {
     display: none;
@@ -2960,7 +2936,6 @@ body,
   letter-spacing: 0;
 }
 .brand small,
-.sidebar-context,
 .sidebar-user,
 .nav-icon,
 .nav-indicator,
@@ -3625,12 +3600,6 @@ select:focus-visible {
   color: #aab2c7;
   margin-top: 4px;
 }
-.sidebar-context {
-  display: flex;
-  margin: 32px 0 0;
-  background: #1b2135;
-  border-color: #2b3248;
-}
 .menu-label {
   display: block;
   color: #aab2c7;
@@ -4223,7 +4192,6 @@ input:not([type="checkbox"]):not([type="file"]) {
     background: transparent;
   }
   .sidebar .brand,
-  .sidebar-context,
   .menu-label,
   .sidebar-bottom {
     display: none;
@@ -4421,4 +4389,32 @@ html {
 }
 .review-info .ai-note {
   min-height: 3em;
+}
+
+/* Sidebar spacing without the workspace card. */
+.sidebar .menu-label { margin-top: 36px; }
+@media (max-width: 767px) { .sidebar .menu-label { display: none; } }
+
+/* Workspace shell: the navigation stays in place while the main panel scrolls. */
+@media (min-width: 768px) {
+  .app { height: 100dvh; min-height: 0; overflow: hidden; }
+  .sidebar { position: relative; top: auto; height: 100dvh; }
+  .main { height: 100dvh; min-width: 0; overflow-y: auto; overscroll-behavior: contain; }
+  .staff-content { max-width: 1280px; }
+  .staff-header { position: sticky; top: 0; z-index: 3; background: var(--color-page); padding: 16px 0; margin-bottom: 16px; }
+  .figma-student-grid, .dash-columns { display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); }
+  .figma-student-grid > :first-child, .dash-columns > :first-child { grid-column: span 8; min-width: 0; }
+  .figma-student-grid > :nth-child(2), .dash-columns > :nth-child(2) { grid-column: span 4; min-width: 0; }
+}
+@media (min-width: 768px) and (max-width: 900px) {
+  .figma-student-grid > *, .dash-columns > * { grid-column: 1 / -1 !important; }
+}
+.compact-list { max-height: min(42vh, 440px); overflow-y: auto; overscroll-behavior: contain; }
+.profile-tabs { display: flex; flex-wrap: wrap; gap: 8px; margin: 16px 0; }
+.profile-tabs button[aria-pressed="true"] { color: #3730a3; background: #eef2ff; border-color: #a5b4fc; }
+.figma-profile-grid { grid-template-columns: minmax(0, 1fr); }
+@media (max-width: 767px) {
+  .app { min-height: 100dvh; }
+  .main { min-width: 0; width: 100%; }
+  .compact-list { max-height: 45vh; }
 }
