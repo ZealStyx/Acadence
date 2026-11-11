@@ -1,4 +1,5 @@
 import {anyApi} from 'convex/server';
+import {studentWeeklyCounts} from '@/lib/server/studentWeeklyCounts';
 import {listStudentCourses,listStudentCoursework,listTeacherCourses,listTeacherCoursework} from '../../../../../convex/classroomGoogle';
 import {bearer,checkOrigin,config,errorResponse,googleToken,session,unseal} from '@/lib/server/classroom';
 export const runtime='nodejs';
@@ -12,6 +13,6 @@ export async function POST(request:Request){try{
  const work=await Promise.allSettled(courses.map(c=>user.role==='student'?listStudentCoursework(token.access_token,c.googleCourseId):listTeacherCoursework(token.access_token,c.googleCourseId)));
  const rows=courses.map((course,i)=>({course,work:work[i].status==='fulfilled'?work[i].value:[],error:work[i].status==='rejected'}));
  let synced=false;const secret=process.env.CLASSROOM_SYNC_SECRET;let syncReason:'missing_config'|'sync_failed'|undefined=secret&&secret.length>=32?'sync_failed':'missing_config';
- if(secret&&secret.length>=32){try{await user.client.mutation(anyApi.classroom.syncSnapshot,{secret,courses:rows.map(({course,work,error})=>({...course,workAvailable:!error,work:user.role==='instructor'?work.map(w=>({googleCourseWorkId:w.googleCourseWorkId,title:w.title,...(w.dueDate?{dueDate:w.dueDate}:{}),...('assigneeMode' in w&&w.assigneeMode?{assigneeMode:w.assigneeMode}:{})})):[]}))});synced=true;syncReason=undefined}catch{/* The personal view still works when shared sync fails. */}}
+ if(secret&&secret.length>=32){try{await user.client.mutation(anyApi.classroom.syncSnapshot,{secret,courses:rows.map(({course,work,error})=>({...course,workAvailable:!error,...(user.role==='student'&&!error?{weeklyCounts:studentWeeklyCounts(work)}:{}),work:user.role==='instructor'?work.map(w=>({googleCourseWorkId:w.googleCourseWorkId,title:w.title,...(w.dueDate?{dueDate:w.dueDate}:{}),...('assigneeMode' in w&&w.assigneeMode?{assigneeMode:w.assigneeMode}:{})})):[]}))});synced=true;syncReason=undefined}catch{/* The personal view still works when shared sync fails. */}}
  return Response.json({connected:true,courses:rows,synced,...(syncReason?{syncReason}:{})},{headers:{'Cache-Control':'no-store'}});
  }catch{return errorResponse();}}

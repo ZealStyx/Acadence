@@ -8,7 +8,7 @@ Pulso and the existing `public/logo.png` are the approved brand for this iterati
 
 The existing shared shell retains role-specific destinations, a role/account summary and visible focus treatment. The mobile bottom navigation uses safe-area padding. Wide heatmaps are labelled horizontal scroll regions. Account changes and Classroom disconnects use browser confirmation dialogs; the profile edit dialog retains its existing focus trap and Escape handling. The CSS retains reduced-motion and larger-text preferences.
 
-The Student pages separate confirmed, scored coursework from personal unscored Classroom work. Their client-side preview uses the same 1/2/3 points and 6/10 thresholds already present in the application; no database, authorization, Classroom sync, or workload calculation functions were modified. Instructor and admin matrices remain **per Classroom class** because matching section labels are not a verified cross-subject cohort; they must not be presented as an academic-section aggregate.
+The Student pages separate confirmed, scored coursework from personal unscored Classroom work. Their client-side preview uses the same 1/2/3 points and 6/10 thresholds already present in the application; no database, authorization, Classroom sync, or workload calculation functions were modified. The instructor matrix remains per Classroom class. Admin Crunch Weeks groups students by matching Classroom section labels as an approximation, not as verified cohorts, and shows unscored average item counts with privacy suppression.
 
 ## Verification and remaining checks
 
