@@ -67,6 +67,15 @@ describe('Convex authorization and shared deadlines',()=>{
   expect((await student.query(api.accounts.me,{})).role).toBe('student');
   await expect(admin.mutation(api.accounts.setTeachingRole,{accountId:adminId,role:'student'})).rejects.toThrow();
  });
+ it('allows users to update only their own profile',async()=>{
+  const t=createTest(),a=t.withIdentity(who('a@lspu.edu.ph')),b=t.withIdentity(who('b@lspu.edu.ph'));
+  await a.mutation(api.accounts.registerStudent,{});await b.mutation(api.accounts.registerStudent,{});
+  await a.mutation(api.accounts.updateProfile,{name:'  Alice  ',contact:' 12345 '});
+  expect((await a.query(api.accounts.me,{})).name).toBe('Alice');expect((await a.query(api.accounts.me,{})).contact).toBe('12345');
+  expect((await b.query(api.accounts.me,{})).name).toBe('b@lspu.edu.ph');
+  await expect(a.mutation(api.accounts.updateProfile,{name:' ',contact:''})).rejects.toThrow();
+  await expect(t.mutation(api.accounts.updateProfile,{name:'Bad',contact:''})).rejects.toThrow();
+ });
  it('accepts university emails without a verification flag and rejects other domains',async()=>{
   const t=createTest();const good=t.withIdentity(who('0324-2225@lspu.edu.ph'));expect((await good.query(api.accounts.status,{})).state).toBe('unapproved');
   const unverified=await t.withIdentity(who('0324-2225@lspu.edu.ph',false)).query(api.accounts.status,{});expect(unverified.state).toBe('unapproved');
