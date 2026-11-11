@@ -4394,10 +4394,10 @@ h1, h2, h3, .brand { font-family: inherit; }
 .page-guide summary { cursor: pointer; font-weight: 700; }
 .page-guide p { margin-top: 8px; }
 @media (min-width: 768px) {
-  .sidebar { width: 309px; padding: 20px 21px; background: var(--color-sidebar); }
+  .sidebar { width: 232px; padding: 16px 14px; background: var(--color-sidebar); }
   .brand { display: flex; align-items: center; gap: 12px; color: #fff; font-size: 18px; font-weight: 700; }
   .sidebar .menu-label { margin: 36px 0 12px; color: #94a3b8; font-size: 14px; font-weight: 700; }
-  .sidebar nav { gap: 22px; }
+  .sidebar nav { gap: 8px; }
   .nav-button, .logout { height: 44px; border-radius: 10px; color: #cbd5e1; }
   .nav-button.active { background: #4f46e5; color: #fff; }
   .nav-indicator { display: none; }
@@ -4407,7 +4407,7 @@ h1, h2, h3, .brand { font-family: inherit; }
   .staff-header { padding: 24px 0 12px; margin-bottom: 12px; }
 }
 @media (min-width: 768px) and (max-width: 1100px) {
-  .sidebar { width: 240px; }
+  .sidebar { width: 220px; }
   .main { padding-left: 24px; padding-right: 24px; }
 }
 @media (max-width: 767px) {

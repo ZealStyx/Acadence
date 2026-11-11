@@ -75,6 +75,7 @@ describe('Convex authorization and shared deadlines',()=>{
   expect((await a.query(api.accounts.me,{})).name).toBe('Alice');expect((await a.query(api.accounts.me,{})).contact).toBe('12345');
   expect((await b.query(api.accounts.me,{})).name).toBe('b@lspu.edu.ph');
   await a.mutation(api.accounts.setAccessibility,{largerText:true,reducedMotion:true});expect((await a.query(api.accounts.me,{})).largerText).toBe(true);expect((await b.query(api.accounts.me,{})).largerText).toBeUndefined();
+  await a.mutation(api.accounts.setDarkMode,{darkMode:true});expect((await a.query(api.accounts.me,{})).darkMode).toBe(true);expect((await a.query(api.accounts.me,{})).reducedMotion).toBe(true);expect((await b.query(api.accounts.me,{})).darkMode).toBeUndefined();await a.mutation(api.accounts.setAccessibility,{largerText:false,reducedMotion:false});expect((await a.query(api.accounts.me,{})).darkMode).toBe(true);await expect(t.mutation(api.accounts.setDarkMode,{darkMode:true})).rejects.toThrow();
   await expect(a.mutation(api.accounts.updateProfile,{name:' ',contact:''})).rejects.toThrow();
   await expect(t.mutation(api.accounts.updateProfile,{name:'Bad',contact:''})).rejects.toThrow();
  });
@@ -149,7 +150,7 @@ describe('Convex authorization and shared deadlines',()=>{
   await instructor.mutation(api.assessments.create,{...draft,courseId:course1});await instructor.mutation(api.assessments.create,{...draft,title:'Second task',courseId:course2});await instructor.mutation(api.assessments.create,{...draft,title:'Other section',courseId:other});
   await t.run(async ctx=>{await ctx.db.insert('memberships',{studentId:a,courseId:other})});
   const one=await t.withIdentity(who('1234-0001@lspu.edu.ph')).query(api.student.timeline,{}),two=await t.withIdentity(who('1234-0002@lspu.edu.ph')).query(api.student.timeline,{}),three=await t.withIdentity(who('1234-0003@lspu.edu.ph')).query(api.student.timeline,{});
-  expect(one.entries.map(d=>d.title)).toEqual(two.entries.map(d=>d.title));expect(one.weeks[0].load).toBe(2);expect(two.weeks[0].load).toBe(2);expect(one.adjustments.map(d=>d.title)).toEqual(['Other section']);expect(two.adjustments).toHaveLength(0);expect(three.entries.map(d=>d.title)).toEqual(['Other section']);
+  expect(one.section?.demoBatchKey).toBeUndefined();expect(one.section?._id).toEqual(first);expect(one.weeks).toEqual(two.weeks);expect(one.entries.map(d=>d.title)).toEqual(two.entries.map(d=>d.title));expect(one.weeks[0].load).toBe(2);expect(two.weeks[0].load).toBe(2);expect(one.adjustments.map(d=>d.title)).toEqual(['Other section']);expect(two.adjustments).toHaveLength(0);expect(three.entries.map(d=>d.title)).toEqual(['Other section']);
   const impact=await instructor.query(api.assessments.collision,{courseId:course1,dueDate:draft.dueDate,type:'quiz',weightPercent:0,major:true});if(impact.unmapped)throw Error('unmapped');expect(impact.current.sharedDeadlineCount).toBe(3);expect(impact.current.load).toBe(3);expect(impact.totalStudents).toBe(2);expect(impact.offerings).toHaveLength(2);
  });
  it('preserves unmapped legacy courses without guessing section membership',async()=>{
