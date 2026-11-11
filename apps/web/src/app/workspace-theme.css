@@ -22,7 +22,7 @@
 .workload-icon { display: inline-block; flex: none; width: 15px; height: 15px; vertical-align: middle; }
 .chip .workload-icon { margin-right: 4px; }
 .dash-cell { display: inline-flex; align-items: center; justify-content: center; gap: 4px; }
-.stable-heatmap { table-layout: fixed; width: calc(180px + var(--week-count) * 86px); min-width: calc(180px + var(--week-count) * 86px); }
+.stable-heatmap { table-layout: fixed; }
 .stable-heatmap .heatmap-section-col { width: 180px; }
 .stable-heatmap .heatmap-week-col { width: 86px; }
 .stable-heatmap th, .stable-heatmap td { overflow-wrap: anywhere; }
@@ -47,6 +47,16 @@
 .classroom-privacy summary { cursor: pointer; font-weight: 700; }
 .review-list { max-height: 55vh; overflow-y: auto; }
 .review-item { padding: 12px; }
+.management-workspace .group-row > span:first-child { min-width: 0; overflow-wrap: anywhere; }
+.management-workspace .group-row > span:first-child + span { display: flex; flex-wrap: wrap; gap: 8px; justify-content: flex-end; }
+@supports (interpolate-size: allow-keywords) {
+  .classroom-course { interpolate-size: allow-keywords; }
+  .classroom-course::details-content { block-size: 0; overflow: clip; transition: block-size .18s ease, content-visibility .18s allow-discrete; }
+  .classroom-course[open]::details-content { block-size: auto; }
+  .reduce-motion .classroom-course::details-content { transition: none; }
+  @media (prefers-reduced-motion: reduce) { .classroom-course::details-content { transition: none; } }
+}
+
 @media (min-width: 768px) {
   .management-workspace { height: calc(100dvh - 40px); min-height: 0; }
   .section-list { height: calc(100dvh - 140px); max-height: calc(100dvh - 140px); }
