@@ -11,6 +11,9 @@ export const updateProfile=mutationGeneric({args:{name:v.string(),contact:v.stri
  if(cleanContact.length>40)throw new Error('Contact number must be 40 characters or fewer.');
  await ctx.db.patch(account._id as Id<'accounts'>,{name:cleanName,contact:cleanContact||undefined});
 }});
+export const setAccessibility=mutationGeneric({args:{largerText:v.boolean(),reducedMotion:v.boolean()},handler:async(ctx,args)=>{
+ const account=await requireAccount(ctx);await ctx.db.patch(account._id as Id<'accounts'>,args);
+}});
 // First administrator must both sign in as the configured university account and invoke this once.
 export const bootstrapAdmin=mutationGeneric({args:{},handler:async(ctx)=>{
  const identity=await identityEmail(ctx); const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');

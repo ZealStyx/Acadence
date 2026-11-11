@@ -28,18 +28,34 @@ export const studentWork = queryGeneric({args:{},handler:async ctx=>{
 
 // Only encrypted, UID-bound credentials are stored. Encryption keys remain on the web server.
 export const connection = queryGeneric({args:{},handler:async ctx=>{
- const student=await requireAccount(ctx,'student');
+ const student=await requireAccount(ctx);
+ if(student.role==='admin')throw new Error('Student or instructor access required.');
  const row=await ctx.db.query('classroomConnections').withIndex('by_owner',q=>q.eq('ownerId',student._id)).unique();
  return row?{encryptedRefreshToken:row.encryptedRefreshToken}:null;
 }});
 export const saveConnection = mutationGeneric({args:{encryptedRefreshToken:v.string()},handler:async(ctx,{encryptedRefreshToken})=>{
- const student=await requireAccount(ctx,'student');
+ const student=await requireAccount(ctx);
  if(encryptedRefreshToken.length>8192||!encryptedRefreshToken.startsWith('v1.'))throw new Error('Invalid credential.');
+ if(student.role==='admin')throw new Error('Student or instructor access required.');
  const row=await ctx.db.query('classroomConnections').withIndex('by_owner',q=>q.eq('ownerId',student._id)).unique();
  if(row)await ctx.db.patch(row._id,{encryptedRefreshToken});else await ctx.db.insert('classroomConnections',{ownerId:student._id,encryptedRefreshToken});
 }});
 export const removeConnection = mutationGeneric({args:{},handler:async ctx=>{
- const student=await requireAccount(ctx,'student');
+ const student=await requireAccount(ctx);
+ if(student.role==='admin')throw new Error('Student or instructor access required.');
  const row=await ctx.db.query('classroomConnections').withIndex('by_owner',q=>q.eq('ownerId',student._id)).unique();
  if(row)await ctx.db.delete(row._id);
+}});
+
+// Private instructor review decisions are not shared section deadlines.
+export const reviews=queryGeneric({args:{},handler:async ctx=>{
+ const instructor=await requireAccount(ctx,'instructor');
+ return await ctx.db.query('classroomReviews').withIndex('by_owner',q=>q.eq('ownerId',instructor._id)).collect();
+}});
+export const confirmReview=mutationGeneric({args:{googleCourseId:v.string(),googleCourseWorkId:v.string(),category:v.union(v.literal('quiz'),v.literal('activity'),v.literal('exam'))},handler:async(ctx,args)=>{
+ const instructor=await requireAccount(ctx,'instructor');
+ if(!args.googleCourseId||!args.googleCourseWorkId||args.googleCourseId.length>256||args.googleCourseWorkId.length>256)throw new Error('Invalid Classroom identifiers.');
+ const all=await ctx.db.query('classroomReviews').withIndex('by_owner',q=>q.eq('ownerId',instructor._id)).collect();
+ const existing=all.find(r=>r.googleCourseId===args.googleCourseId&&r.googleCourseWorkId===args.googleCourseWorkId);
+ if(existing)await ctx.db.patch(existing._id,{category:args.category,updatedAt:Date.now()});else await ctx.db.insert('classroomReviews',{...args,ownerId:instructor._id,updatedAt:Date.now()});
 }});
