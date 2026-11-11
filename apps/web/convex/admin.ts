@@ -41,3 +41,29 @@ export const classroomOverview=queryGeneric({args:{weekStarts:v.array(v.string()
  return {subjects:rows.sort((a,b)=>a.name.localeCompare(b.name)),summary,connectedInstructors,syncConfigured:(process.env.CLASSROOM_SYNC_SECRET||'').length>=32};
 }});
 function weekStartSafe(date:string){try{return weekStart(date)}catch{return null}}
+
+// Section labels are free text entered by Classroom teachers, not verified cohort IDs.
+// Each student's dated visible-work counts stay private; only a >=5-student average
+// is returned and no assignment titles or individual student values are exposed.
+export const studentSectionOverview=queryGeneric({args:{weekStarts:v.array(v.string())},handler:async(ctx,{weekStarts})=>{
+ await requireAccount(ctx,'admin');if(!weekStarts.length||weekStarts.length>12||weekStarts.some(w=>weekStart(w)!==w))throw new Error('Provide up to 12 Monday week starts.');
+ const accounts=await ctx.db.query('accounts').collect(),active=new Set(accounts.filter(a=>a.active&&a.role==='student').map(a=>a._id));
+ const snapshots=(await ctx.db.query('classroomSnapshots').collect()).filter(s=>s.role==='student'&&active.has(s.ownerId));
+ type Snapshot=typeof snapshots[number];
+ type Group={id:string;label:string;unlabelled:boolean;members:Map<string,Map<string,Snapshot>>};
+ const groups=new Map<string,Group>();
+ for(const c of snapshots){const label=c.section?.trim().replace(/\s+/g,' ')||'';const id=label?'section:'+label.toLocaleLowerCase('en-US'):'course:'+c.googleCourseId;let group=groups.get(id);if(!group){group={id,label:label||`No section · ${c.name}`,unlabelled:!label,members:new Map()};groups.set(id,group)}
+  let member=group.members.get(c.ownerId);if(!member){member=new Map();group.members.set(c.ownerId,member)}const old=member.get(c.googleCourseId);if(!old||old.syncedAt<c.syncedAt)member.set(c.googleCourseId,c);
+ }
+ return Array.from(groups.values()).map(group=>{
+  const members=Array.from(group.members.values());const eligible=members.length>=5;
+  // Never convert failed or pre-migration snapshots into zero counts.
+  const complete=members.every(member=>Array.from(member.values()).every(c=>c.workAvailable&&Array.isArray(c.weeklyCounts)));
+  const available=eligible&&complete;
+  return {id:group.id,label:group.label,unlabelled:group.unlabelled,studentCount:eligible?members.length:null,status:!eligible?'suppressed':!complete?'unavailable':'available',weeks:weekStarts.map(start=>{
+   if(!available)return {start,average:null};
+   const total=members.reduce((sum,member)=>sum+Array.from(member.values()).reduce((n,c)=>n+(c.weeklyCounts?.find((w:{start:string;count:number})=>w.start===start)?.count||0),0),0);
+   return {start,average:Math.round(total/members.length*10)/10};
+  })};
+ }).sort((a,b)=>a.label.localeCompare(b.label));
+}});

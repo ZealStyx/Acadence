@@ -54,7 +54,7 @@ function classroomUrl(value:unknown):string|undefined{
 }
 export async function listStudentCourses(token:string,fetcher:Fetcher=fetch):Promise<StudentCourse[]>{
  const data=await pages('courses',new URLSearchParams({studentId:'me',courseStates:'ACTIVE',pageSize:'100'}),'courses',token,fetcher);
- return data.map(item=>{const c=record(item);return {googleCourseId:requiredString(c.id),name:requiredString(c.name)};});
+ return data.map(item=>{const c=record(item);return {googleCourseId:requiredString(c.id),name:requiredString(c.name),...(typeof c.courseState==='string'?{courseState:c.courseState}:{}),...(typeof c.section==='string'?{section:c.section}: {})};});
 }
 export async function listStudentCoursework(token:string,courseId:string,fetcher:Fetcher=fetch):Promise<StudentCoursework[]>{
  if(!courseId||courseId==='.'||courseId==='..')throw new Error('Invalid Classroom course ID.');
