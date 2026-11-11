@@ -14,6 +14,10 @@ export const updateProfile=mutationGeneric({args:{name:v.string(),contact:v.stri
 export const setAccessibility=mutationGeneric({args:{largerText:v.boolean(),reducedMotion:v.boolean()},handler:async(ctx,args)=>{
  const account=await requireAccount(ctx);await ctx.db.patch(account._id as Id<'accounts'>,args);
 }});
+// Theme is updated independently so accessibility changes cannot overwrite it.
+export const setDarkMode=mutationGeneric({args:{darkMode:v.boolean()},handler:async(ctx,{darkMode})=>{
+ const account=await requireAccount(ctx);await ctx.db.patch(account._id as Id<'accounts'>,{darkMode});
+}});
 // First administrator must both sign in as the configured university account and invoke this once.
 export const bootstrapAdmin=mutationGeneric({args:{},handler:async(ctx)=>{
  const identity=await identityEmail(ctx); const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');
