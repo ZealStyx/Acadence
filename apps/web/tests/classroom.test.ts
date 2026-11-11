@@ -62,3 +62,15 @@ describe('instructor Classroom reviews',()=>{
   await expect(student.mutation(api.classroom.confirmReview,data)).rejects.toThrow();
  });
 });
+
+describe('AI request protection',()=>{
+ it('requires an active connected student or instructor and limits request bursts',async()=>{
+  const t=createTest();await t.run(async ctx=>{await ctx.db.insert('accounts',{firebaseUid:'student',email:'student@lspu.edu.ph',name:'Student',role:'student',active:true});await ctx.db.insert('accounts',{firebaseUid:'admin',email:'admin@lspu.edu.ph',name:'Admin',role:'admin',active:true})});
+  const student=t.withIdentity(identity('student')),admin=t.withIdentity(identity('admin'));
+  await expect(student.mutation(api.classroom.reserveAiRequest,{})).rejects.toThrow();
+  await student.mutation(api.classroom.saveConnection,{encryptedRefreshToken:'v1.encrypted'});
+  await expect(admin.mutation(api.classroom.reserveAiRequest,{})).rejects.toThrow();
+  for(let i=0;i<60;i++)await student.mutation(api.classroom.reserveAiRequest,{});
+  await expect(student.mutation(api.classroom.reserveAiRequest,{})).rejects.toThrow('limit');
+ });
+});
