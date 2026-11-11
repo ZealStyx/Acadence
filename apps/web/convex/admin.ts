@@ -4,9 +4,8 @@ import {requireAccount} from './access';
 import {weekStart,score,band} from './calculations';
 export const heatmap=queryGeneric({args:{weekStarts:v.array(v.string())},handler:async(ctx,{weekStarts})=>{
  await requireAccount(ctx,'admin');if(weekStarts.length<1||weekStarts.length>20||weekStarts.some(w=>weekStart(w)!==w))throw new Error('Provide up to 20 Monday week starts.');
- const students=(await ctx.db.query('accounts').collect()).filter(a=>a.role==='student'&&a.active&&a.program&&a.yearLevel);
- const groups=new Map<string,{program:string;yearLevel:number;loads:number[][]}>();
- for(const student of students){const key=JSON.stringify([student.program,student.yearLevel]);let group=groups.get(key);if(!group){group={program:student.program!,yearLevel:student.yearLevel!,loads:weekStarts.map(()=>[])};groups.set(key,group)}const links=await ctx.db.query('memberships').withIndex('by_student',q=>q.eq('studentId',student._id)).collect();const entries=(await Promise.all(links.map(l=>ctx.db.query('assessments').withIndex('by_course',q=>q.eq('courseId',l.courseId)).collect()))).flat();weekStarts.forEach((start,i)=>group!.loads[i].push(score(entries.filter(d=>weekStart(d.dueDate)===start))))}
- // Suppress small cohorts to reduce re-identification risk.
- return Array.from(groups.values()).filter(g=>g.loads[0].length>=5).map(g=>({program:g.program,yearLevel:g.yearLevel,studentCount:g.loads[0].length,weeks:weekStarts.map((start,i)=>{const averageLoad=g.loads[i].reduce((a,b)=>a+b,0)/g.loads[i].length;return {start,averageLoad,band:band(averageLoad)}})}));
+ const sections=await ctx.db.query('academicSections').collect();const results=await Promise.all(sections.map(async section=>{
+ const members=await ctx.db.query('sectionMembers').withIndex('by_section',q=>q.eq('academicSectionId',section._id)).collect();const students=(await Promise.all(members.map(m=>ctx.db.get(m.studentId)))).filter(s=>s&&s.active&&s.role==='student');if(students.length<5)return null;
+ const offerings=await ctx.db.query('courses').withIndex('by_academic_section',q=>q.eq('academicSectionId',section._id)).collect();const entries=(await Promise.all(offerings.map(c=>ctx.db.query('assessments').withIndex('by_course',q=>q.eq('courseId',c._id)).collect()))).flat();return {id:section._id,code:section.code,term:section.term,program:section.program,yearLevel:section.yearLevel,studentCount:students.length,offeringCount:offerings.length,weeks:weekStarts.map(start=>{const load=score(entries.filter(d=>weekStart(d.dueDate)===start));return {start,averageLoad:load,band:band(load)}})};
+ }));return results.filter((r):r is NonNullable<typeof r>=>r!==null);
 }});
