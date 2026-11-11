@@ -4,8 +4,8 @@ This is synthetic sample data in Convex, **not** Google Classroom. The existing 
 
 ## Setup and accounts
 
-1. Configure the existing Firebase and Convex integration as described in `apps/web/PULSO_SETUP.md`. Deploy the current Convex schema/functions and web app to the same intended environment. Example from `apps/web`: `npx convex dev` for the configured development deployment. A production deployment requires the appropriate separate deployment procedure; do not assume the example targets production.
-2. In the **target Convex deployment's** environment settings, set `PITCH_DEMO_ENABLED=true`. It defaults to disabled; no public `NEXT_PUBLIC_` flag controls access. Turn it back off after the pitch. The authenticated, active Pulso administrator must sign in with their existing Firebase account.
+1. Configure the existing Firebase and Convex integration as described in `apps/web/ACADENCE_SETUP.md`. Deploy the current Convex schema/functions and web app to the same intended environment. Example from `apps/web`: `npx convex dev` for the configured development deployment. A production deployment requires the appropriate separate deployment procedure; do not assume the example targets production.
+2. In the **target Convex deployment's** environment settings, set `PITCH_DEMO_ENABLED=true`. It defaults to disabled; no public `NEXT_PUBLIC_` flag controls access. Turn it back off after the pitch. The authenticated, active Acadence administrator must sign in with their existing Firebase account.
 3. In Accounts, provision one real team account as an active instructor (and have that person link/sign in through the existing process). Optionally sign in as or provision an active student team account. Use an account with **no primary section**; the seed refuses to move a student from another section. No role, name, email or Firebase UID is changed by the seed. Synthetic roster accounts have `@demo.invalid` addresses, no Firebase UID and cannot sign in.
 
 ## Preview and seed

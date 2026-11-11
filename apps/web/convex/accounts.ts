@@ -2,6 +2,8 @@ import {mutationGeneric,queryGeneric} from 'convex/server';
 import {v} from 'convex/values';
 import type {Id} from './_generated/dataModel';
 import {emailPattern,allowedEmail,exceptionAdmins,identityEmail,normalizeEmail,requireAccount,firebaseIdentity} from './access';
+// Prefer the current name while retaining compatibility with existing deployments.
+const bootstrapEmail=()=>normalizeEmail(process.env.ACADENCE_BOOTSTRAP_ADMIN_EMAIL||process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');
 const role=v.union(v.literal('student'),v.literal('instructor'),v.literal('admin'));
 export const me=queryGeneric({args:{},handler:async(ctx)=>requireAccount(ctx)});
 // Users may edit only their own display name and optional contact number.
@@ -20,7 +22,7 @@ export const setDarkMode=mutationGeneric({args:{darkMode:v.boolean()},handler:as
 }});
 // First administrator must both sign in as the configured university account and invoke this once.
 export const bootstrapAdmin=mutationGeneric({args:{},handler:async(ctx)=>{
- const identity=await identityEmail(ctx); const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');
+ const identity=await identityEmail(ctx); const configured=bootstrapEmail();
  if(!emailPattern.test(configured)||identity.email!==configured) throw new Error('Bootstrap is not authorized.');
  if(await ctx.db.query('bootstrap').first()) throw new Error('Bootstrap has already completed.');
  if(await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',identity.email)).unique()) throw new Error('Account already exists.');
@@ -55,7 +57,7 @@ export const registerStudent=mutationGeneric({args:{},handler:async(ctx)=>{
  if(linked){if(!linked.active)throw new Error('Account is disabled.');return linked._id;}
  const existing=await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',identity.email)).unique();
  if(existing)throw new Error('This account already exists. Contact your administrator if you cannot link it.');
- const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');
+ const configured=bootstrapEmail();
  if(identity.email===configured&&!(await ctx.db.query('bootstrap').first()))throw new Error('Set up the first administrator before continuing.');
  return await ctx.db.insert('accounts',{firebaseUid:identity.uid,email:identity.email,name:identity.name,role:exceptionAdmins.has(identity.email)?'admin':'student',active:true});
 }});
@@ -70,6 +72,6 @@ export const status=queryGeneric({args:{},handler:async(ctx)=>{
  const identity=await ctx.auth.getUserIdentity();if(!identity||!identity.subject)return {state:'invalid' as const,reason:'missing_identity' as const};
  if(!identity.email)return {state:'invalid' as const,reason:'missing_email' as const};const email=normalizeEmail(identity.email);if(!allowedEmail(email))return {state:'invalid' as const,reason:'invalid_format' as const,email};
  const account=await ctx.db.query('accounts').withIndex('by_firebase_uid',q=>q.eq('firebaseUid',identity.subject)).unique();if(account)return account.active?{state:'active' as const,account}:{state:'unapproved' as const,canBootstrap:false,canLink:false};
- const approved=await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',email)).unique();const configured=normalizeEmail(process.env.PULSO_BOOTSTRAP_ADMIN_EMAIL||'');const canBootstrap=!approved&&configured===email&&!(await ctx.db.query('bootstrap').first());
+ const approved=await ctx.db.query('accounts').withIndex('by_email',q=>q.eq('email',email)).unique();const configured=bootstrapEmail();const canBootstrap=!approved&&configured===email&&!(await ctx.db.query('bootstrap').first());
  return {state:'unapproved' as const,canBootstrap,canLink:!!approved&&approved.active&&!approved.firebaseUid,canRegister:!approved&&!canBootstrap};
 }});
