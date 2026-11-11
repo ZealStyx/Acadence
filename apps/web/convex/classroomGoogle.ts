@@ -9,7 +9,7 @@ const BASE='https://classroom.googleapis.com/v1/';
 const MAX_PAGES=100;
 type Fetcher=typeof fetch;
 export type StudentCourse={googleCourseId:string;name:string;courseState?:string;section?:string};
-export type StudentCoursework={googleCourseId:string;googleCourseWorkId:string;title:string;state:'PUBLISHED';dueDate?:string;sourceUrl?:string;updatedAt:number};
+export type StudentCoursework={googleCourseId:string;googleCourseWorkId:string;title:string;state:'PUBLISHED';dueDate?:string;sourceUrl?:string;updatedAt:number;workType?:string};
 
 async function pages(path:string,params:URLSearchParams,field:string,token:string,fetcher:Fetcher):Promise<unknown[]>{
  if(!token)throw new Error('Classroom access token is missing.');
@@ -65,7 +65,7 @@ export async function listStudentCoursework(token:string,courseId:string,fetcher
   if(w.state!=='PUBLISHED')throw new Error('Unexpected Classroom coursework state.');
   const updatedAt=Date.parse(requiredString(w.updateTime));
   if(Number.isNaN(updatedAt))throw new Error('Invalid Classroom update time.');
-  return {googleCourseId:courseId,googleCourseWorkId:requiredString(w.id),title:requiredString(w.title),state:'PUBLISHED' as const,dueDate:dueDate(w.dueDate),sourceUrl:classroomUrl(w.alternateLink),updatedAt};
+  return {googleCourseId:courseId,googleCourseWorkId:requiredString(w.id),title:requiredString(w.title),state:'PUBLISHED' as const,dueDate:dueDate(w.dueDate),sourceUrl:classroomUrl(w.alternateLink),updatedAt,...(typeof w.workType==='string'?{workType:w.workType}: {})};
  });
 }
 

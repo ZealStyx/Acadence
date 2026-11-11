@@ -88,3 +88,13 @@ export const studentConfirmed=queryGeneric({args:{},handler:async ctx=>{
  }
  return {connected:memberships.length>0,entries:Array.from(results.values()).sort((a,b)=>a.dueDate.localeCompare(b.dueDate))};
 }});
+
+// Bound AI usage per connected account; never store submitted prompts or outputs.
+export const reserveAiRequest=mutationGeneric({args:{},handler:async ctx=>{
+ const account=await requireAccount(ctx);if(account.role!=='student'&&account.role!=='instructor')throw new Error('Student or instructor access required.');
+ const connection=await ctx.db.query('classroomConnections').withIndex('by_owner',q=>q.eq('ownerId',account._id)).unique();if(!connection)throw new Error('Connect Classroom first.');
+ const row=await ctx.db.query('classroomAiUsage').withIndex('by_owner',q=>q.eq('ownerId',account._id)).unique(),now=Date.now();
+ if(!row)await ctx.db.insert('classroomAiUsage',{ownerId:account._id,windowStart:now,requests:1});
+ else if(now-row.windowStart>=60000)await ctx.db.patch(row._id,{windowStart:now,requests:1});
+ else {if(row.requests>=60)throw new Error('AI request limit reached.');await ctx.db.patch(row._id,{requests:row.requests+1});}
+}});
