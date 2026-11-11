@@ -1,6 +1,6 @@
 # Google Classroom integration: implementation plan
 
-**Status: planned, not implemented.** This document translates the Classroom section of `project-plan.md` into an implementation sequence for the existing Next.js, Firebase and Convex application. Manual deadlines remain available; there is no syllabus upload or parsing.
+**Status: in progress.** Private student cache and tested server-side Classroom read helpers exist, but OAuth, live synchronization, credential storage, and the connection UI are not implemented. The helpers are not yet connected to an application flow. This document translates the Classroom section of `project-plan.md` into an implementation sequence for the existing Next.js, Firebase and Convex application. Manual deadlines remain available; there is no syllabus upload or parsing.
 
 ## Goals and boundaries
 
