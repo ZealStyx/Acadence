@@ -164,3 +164,18 @@ html, .app .dash-table-wrap { scrollbar-gutter: auto; }
 .deadline-modal .deadline-preview { max-height: 220px; overflow: auto; }
 .deadline-modal .profile-actions { display: flex; justify-content: flex-end; flex-wrap: wrap; gap: 10px; margin: 0; }
 @media (max-width: 560px) { .deadline-modal .form-row { grid-template-columns: 1fr; } .deadline-modal .profile-actions > button { flex: 1; } }
+.student-insight-note { color: var(--color-muted); font-size: .875rem; }
+.student-insight summary { cursor: pointer; color: var(--color-primary, #4338ca); font-weight: 600; }
+.student-insight summary:focus-visible { outline: 2px solid currentColor; outline-offset: 4px; }
+.student-insight-detail { margin-top: 16px; }
+.student-insight-detail li { margin-bottom: 8px; overflow-wrap: anywhere; }
+.student-insight-detail .insight-card { margin-top: 16px; }
+/* Keep week navigation reachable and consistent at every viewport size. */
+.figma-pager, .dash-pager { min-width: 0; }
+.figma-pager .arrow, .dash-pager button { flex: 0 0 auto; min-height: 44px; cursor: pointer; }
+.figma-pager .arrow:focus-visible, .dash-pager button:focus-visible { outline: 2px solid #6366f1; outline-offset: 3px; }
+.figma-pager strong { flex: 1; min-width: 0; }
+@media (max-width: 480px) { .dash-pager { justify-content: space-between; } .dash-pager button { padding-inline: 10px; } }
+.classroom-week-item { border-top: 1px solid var(--color-border, #e2e8f0); padding: 12px 0; overflow-wrap: anywhere; }
+.classroom-week-item p { margin: 4px 0; }
+.classroom-week > button { margin-top: 12px; }
