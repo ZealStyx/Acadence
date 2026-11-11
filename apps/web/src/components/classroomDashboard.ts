@@ -8,6 +8,13 @@ export function studentDeadlines(courses:CourseResult[]):Deadline[]{
  for(const {course,work,error} of courses){if(error)continue;for(const w of work){if(!w.dueDate)continue;const id=JSON.stringify([course.googleCourseId,w.googleCourseWorkId]);found.set(id,{id,course:course.name,title:w.title,dueDate:w.dueDate,sourceUrl:w.sourceUrl,workType:w.workType||'UNKNOWN',updatedAt:w.updatedAt});}}
  return Array.from(found.values()).sort((a,b)=>a.dueDate.localeCompare(b.dueDate)||a.title.localeCompare(b.title));
 }
+export type UndatedWork={id:string;course:string;title:string;sourceUrl?:string};
+/** Undated published work belongs to the student, never to a particular week or score. */
+export function studentUndatedWork(courses:CourseResult[]):UndatedWork[]{
+ const found=new Map<string,UndatedWork>();
+ for(const {course,work,error} of courses){if(error)continue;for(const item of work){if(item.dueDate)continue;const id=JSON.stringify([course.googleCourseId,item.googleCourseWorkId]);found.set(id,{id,course:course.name,title:item.title,sourceUrl:item.sourceUrl});}}
+ return [...found.values()].sort((a,b)=>a.course.localeCompare(b.course)||a.title.localeCompare(b.title));
+}
 export function estimateKey(item:Deadline){return JSON.stringify([item.id,item.updatedAt]);}
 // Missing classifications are never treated as zero or guessed as a real category.
 export function estimatedScore(items:Deadline[],estimates:Estimates):number|null{
