@@ -37,6 +37,7 @@ export const classroomOverview=queryGeneric({args:{weekStarts:v.array(v.string()
  // Small populations and small high-workload counts are suppressed.
  const ids=new Set(students.map(s=>s.ownerId));
  const summary=weekStarts.map(start=>{let high=0;for(const id of ids){const memberships=students.filter(s=>s.ownerId===id);let load=0;for(const membership of memberships){const subject=subjects.get(membership.googleCourseId);if(subject?.state==='ACTIVE')for(const item of subject.work.values())if(weekStart(item.dueDate)===start)load+=({quiz:1,activity:2,exam:3}[item.type]);}if(load>=6)high++;}return {start,count:ids.size>=5&&high>=5?high:null,population:ids.size>=5?ids.size:null};});
- return {subjects:rows.sort((a,b)=>a.name.localeCompare(b.name)),summary};
+ const connections=await ctx.db.query('classroomConnections').collect();const connectedInstructors=connections.filter(c=>active.get(c.ownerId)?.role==='instructor').length;
+ return {subjects:rows.sort((a,b)=>a.name.localeCompare(b.name)),summary,connectedInstructors,syncConfigured:(process.env.CLASSROOM_SYNC_SECRET||'').length>=32};
 }});
 function weekStartSafe(date:string){try{return weekStart(date)}catch{return null}}
