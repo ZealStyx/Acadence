@@ -1,0 +1,15 @@
+# Pulso interface notes
+
+Pulso and the existing `public/logo.png` are the approved brand for this iteration. The active workspace remains `Workspace.tsx`; its student, instructor and admin components consume the existing queries and mutations. Legacy/demo components were not deleted.
+
+## Shared styles
+
+`src/app/globals.css` retains older compatibility rules and contains a labelled Pulso design foundation near the end. It is formatted for readability; some legacy overrides remain intentionally because their consumers have not all been audited. The foundation defines `--color-*`, `--space-*`, `--radius-card` and `--shadow-card`. Reusable patterns include `.card`, `.panel`, `.staff-header`, `.primary`, `.secondary`, `.field`, `.chip`, `.state-card`, `.empty-state`, `.filter-bar`, `.deadline-item`, `.dash-table-wrap` and `.connection-panel`. Status labels accompany colors; unavailable data is not treated as zero.
+
+The existing shared shell retains role-specific destinations, a role/account summary and visible focus treatment. The mobile bottom navigation uses safe-area padding. Wide heatmaps are labelled horizontal scroll regions. Account changes and Classroom disconnects use browser confirmation dialogs; the profile edit dialog retains its existing focus trap and Escape handling. The CSS retains reduced-motion and larger-text preferences.
+
+The Student pages separate confirmed, scored coursework from personal unscored Classroom work. Their client-side preview uses the same 1/2/3 points and 6/10 thresholds already present in the application; no database, authorization, Classroom sync, or workload calculation functions were modified. Instructor and admin matrices remain **per Classroom class** because matching section labels are not a verified cross-subject cohort; they must not be presented as an academic-section aggregate.
+
+## Verification and remaining checks
+
+Automated backend tests and the Next.js production build are the executable checks in this sandbox. A local browser screenshot attempt was blocked by missing system libraries (`libnss3`/`libnspr4`); authenticated roles also require real Firebase, Convex, and Classroom sessions. Before release, capture and review signed-in student, instructor and admin screens at 1440, 1280, 1024, 768, 390 and 360 pixels. Verify actual content overflow, keyboard access (including native confirmations), focus return, larger text, reduced motion, contrast, category confirmation, filtering, OAuth connect/refresh/disconnect and profile edits. No synthetic sample-data preview was added.
