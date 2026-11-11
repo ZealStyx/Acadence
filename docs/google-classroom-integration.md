@@ -1,6 +1,6 @@
 # Google Classroom integration: implementation plan
 
-**Status: in progress.** Private student cache and tested server-side Classroom read helpers exist, but OAuth, live synchronization, credential storage, and the connection UI are not implemented. The helpers are not yet connected to an application flow. This document translates the Classroom section of `project-plan.md` into an implementation sequence for the existing Next.js, Firebase and Convex application. Manual deadlines remain available; there is no syllabus upload or parsing.
+**Status: prototype in progress.** A student can use a Firebase reauthentication popup to request read-only Classroom access, then view active classes and published coursework and refresh them. Data and the short-lived token are held only in browser memory. This flow has not yet been tested with a real Google account or deployed. Instructor integration, background sync, and credential storage are not implemented. The design below describes the fuller planned integration, not all current behavior. Manual deadlines remain available; there is no syllabus upload or parsing.
 
 ## Goals and boundaries
 

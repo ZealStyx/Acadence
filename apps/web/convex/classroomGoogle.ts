@@ -1,6 +1,6 @@
-/** Server-side Google Classroom read helpers. Not exposed as a Convex function.
- * A future OAuth action must supply a token belonging to the requesting student.
- * Never pass credentials to browser queries or persist them in this module.
+/** Read-only Classroom API helpers. The student prototype calls these directly
+ * from the browser with a short-lived Google access token held only in memory.
+ * These helpers do not persist or log tokens.
  */
 const BASE='https://classroom.googleapis.com/v1/';
 const MAX_PAGES=100;

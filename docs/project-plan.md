@@ -6,7 +6,7 @@
 
 ---
 
-> **Identity decision:** Access requires verified university Google accounts in the `0000-0000@lspu.edu.ph` format, provisioned by an administrator.
+> **Identity decision:** A Firebase sign-in with an `@lspu.edu.ph` email can automatically create a student account; neither an email-verification flag nor a numeric local-part format is required. Instructor roles remain administrator-managed. The only non-university exceptions are `johnalexalcazar@gmail.com` and `alcazarjohnalex@gmail.com`, which receive admin access on first sign-in. Section membership is not automatically created by sign-in. A domain suffix alone does not prove mailbox ownership; restrict Firebase sign-in providers and review the security implications before rollout.
 
 ## 1. Overview
 
