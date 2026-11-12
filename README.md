@@ -1,3 +1,7 @@
+<div align="center">
+  <img width="100%" src="https://capsule-render.vercel.app/api?type=waving&height=100&section=header&reversal=true&fontSize=70&fontColor=FFFFFF&fontAlign=50&fontAlignY=50&stroke=-&descSize=30&descAlign=50&descAlignY=50&textBg=false&color=gradient" />
+</div>
+
 # Acadence
 
 **A clearer view of every academic week.**
@@ -197,3 +201,9 @@ For Vercel/Convex examples, bootstrap migration, key handling, and operational t
 - [Firebase and Convex assessment](docs/firebase-convex-assessment.md).
 - [Guarded seeded-data instructions](docs/pitch-demo-data.md) — use only in an authorized isolated environment; never create or reset data in a shared deployment without approval.
 - [Project plan](docs/project-plan.md) — broader design goals and proposed features, not necessarily implemented.
+
+
+
+<div align="center">
+  <img width="100%" src="https://capsule-render.vercel.app/api?type=waving&height=100&section=footer&reversal=false&fontSize=70&fontColor=FFFFFF&fontAlign=50&fontAlignY=50&stroke=-&descSize=30&descAlign=50&descAlignY=50&textBg=false&color=gradient" />
+</div>
